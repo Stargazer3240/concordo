@@ -3,6 +3,6 @@
 # SPDX-License-Identifier: MIT-0
 
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,hicpp-*,performance-*,readability-*,modernize-*,-modernize-use-trailing-return-type, -hicpp-special-member-functions, -modernize-use-nodiscard, -readability-magic-numbers, -readability-qualified-auto, -readability-function-cognitive-complexity, -readability-identifier-length'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cert-*,hicpp-*,performance-*,readability-*,modernize-*, cppcoreguidelines-*, -cppcoreguidelines-prefer-member-initializer, -readability-identifier-length'
 ...
 
