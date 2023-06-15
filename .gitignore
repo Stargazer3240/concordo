@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2023 Fabrício Moura Jácome
+#
+# SPDX-License-Identifier: MIT-0
+
+build/
+bin/
+docs/
+valgrind*
+.cache/

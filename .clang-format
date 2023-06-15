@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2023 Fabrício Moura Jácome
+#
+# SPDX-License-Identifier: MIT-0
+
+---
+Language:        Cpp
+BasedOnStyle:  Google
+PointerAlignment: Left
+DerivePointerAlignment: true
+...
