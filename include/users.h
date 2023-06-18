@@ -8,22 +8,23 @@
 #include <string>
 #include <string_view>
 
+using std::string_view, std::string;
+
 class User {
  public:
-  User(std::string_view name, std::string_view email,  // NOLINT
-       std::string_view password)                      // NOLINT
+  User(string_view name, string_view email, string_view password)  // NOLINT
       : name{name}, email{email}, password{password} {}
 
   [[nodiscard]] int getId() const { return id; }
-  std::string& getName() { return name; }
-  std::string& getEmail() { return email; }
-  std::string& getPassword() { return password; }
+  string& getName() { return name; }
+  string& getEmail() { return email; }
+  string& getPassword() { return password; }
 
  private:
   int id{};
-  std::string name;
-  std::string email;
-  std::string password;
+  string name;
+  string email;
+  string password;
 };
 
 #endif  // USERS_H

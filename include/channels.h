@@ -10,45 +10,47 @@
 #include <string_view>
 #include <vector>
 
+using std::string, std::string_view, std::tm, std::vector;
+
 class Message {
  public:
   Message() = default;
-  Message(std::tm date_time, int sender_id, std::string_view content)
+  Message(tm date_time, int sender_id, string_view content)
       : date_time{date_time}, sender_id{sender_id}, content{content} {}
 
-  std::tm getDateTime() { return date_time; }
+  tm getDateTime() { return date_time; }
   [[nodiscard]] int getId() const { return sender_id; }
-  std::string getContent() { return content; }
+  string getContent() { return content; }
 
  private:
-  std::tm date_time{};
+  tm date_time{};
   int sender_id{};
-  std::string content;
+  string content;
 };
 
 class Channel {
  public:
-  explicit Channel(std::string_view name) : name{name} {}
+  explicit Channel(string_view name) : name{name} {}
 
-  std::string getName() { return name; }
+  string getName() { return name; }
 
  private:
-  std::string name;
+  string name;
 };
 
 class TextChannel : public Channel {
  public:
-  explicit TextChannel(std::string_view name) : Channel(name) {}
+  explicit TextChannel(string_view name) : Channel(name) {}
 
-  std::vector<Message>& getMessages() { return messages; }
+  vector<Message>& getMessages() { return messages; }
 
  private:
-  std::vector<Message> messages;
+  vector<Message> messages;
 };
 
 class VoiceChannel : public Channel {
  public:
-  explicit VoiceChannel(std::string_view name) : Channel(name) {}
+  explicit VoiceChannel(string_view name) : Channel(name) {}
 
   Message& getMessage() { return last_message; }
 
