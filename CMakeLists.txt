@@ -17,4 +17,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS=ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
-add_executable(concordo )
+add_executable(concordo
+              src/main.cpp
+              src/channels.cpp
+              src/system.cpp
+              src/users.cpp
+              src/servers.cpp)
