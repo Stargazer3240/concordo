@@ -16,46 +16,46 @@ class Message {
  public:
   Message() = default;
   Message(tm date_time, int sender_id, string_view content)
-      : date_time{date_time}, sender_id{sender_id}, content{content} {}
+      : date_time_{date_time}, sender_id_{sender_id}, content_{content} {}
 
-  tm getDateTime() { return date_time; }
-  [[nodiscard]] int getId() const { return sender_id; }
-  string getContent() { return content; }
+  [[nodiscard]] tm getDateTime() const { return date_time_; }
+  [[nodiscard]] int getId() const { return sender_id_; }
+  [[nodiscard]] string getContent() const { return content_; }
 
  private:
-  tm date_time{};
-  int sender_id{};
-  string content;
+  tm date_time_{};
+  int sender_id_{};
+  string content_;
 };
 
 class Channel {
  public:
-  explicit Channel(string_view name) : name{name} {}
+  explicit Channel(string_view name) : name_{name} {}
 
-  string getName() { return name; }
+  [[nodiscard]] string getName() const { return name_; }
 
  private:
-  string name;
+  string name_;
 };
 
 class TextChannel : public Channel {
  public:
   explicit TextChannel(string_view name) : Channel(name) {}
 
-  vector<Message>& getMessages() { return messages; }
+  [[nodiscard]] vector<Message> getMessages() const { return messages_; }
 
  private:
-  vector<Message> messages;
+  vector<Message> messages_;
 };
 
 class VoiceChannel : public Channel {
  public:
   explicit VoiceChannel(string_view name) : Channel(name) {}
 
-  Message& getMessage() { return last_message; }
+  [[nodiscard]] Message getMessage() const { return last_message_; }
 
  private:
-  Message last_message;
+  Message last_message_;
 };
 
 #endif  // CHANNELS_H
