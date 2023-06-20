@@ -11,19 +11,26 @@
 #include "servers.h"
 #include "users.h"
 
-using std::unordered_set;
-
 enum class SystemState { kGuest, kLogged_In, kJoinedServer, kJoinedChannel };
+
+namespace concordo {
+
+using std::unordered_set;
 
 class System {
  public:
+  SystemState getState() const { return current_state_; }
+
  private:
-  int state{};
+  using enum SystemState;
+  SystemState current_state_{kGuest};
   unordered_set<User> user_list_;
   unordered_set<Server> server_list_;
   User logged_user_;
-  Server open_server_;
-  Channel open_channel_;
+  Server current_server_;
+  Channel current_channel_;
 };
+
+}  // namespace concordo
 
 #endif  // SYSTEM_H

@@ -2,4 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-int main() { return 0; }
+#include "system.h"
+
+int main() {
+  using System = concordo::System;
+
+  return 0;
+}

@@ -10,6 +10,8 @@
 #include <string_view>
 #include <vector>
 
+namespace concordo {
+
 using std::string, std::string_view, std::tm, std::vector;
 
 class Message {
@@ -60,5 +62,7 @@ class VoiceChannel : public Channel {
  private:
   Message last_message_;
 };
+
+}  // namespace concordo
 
 #endif  // CHANNELS_H

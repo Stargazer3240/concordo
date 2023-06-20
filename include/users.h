@@ -10,6 +10,8 @@
 #include <string_view>
 #include <utility>
 
+namespace concordo {
+
 using std::string_view, std::string, std::begin, std::find;
 
 class EmailAddress {
@@ -19,6 +21,7 @@ class EmailAddress {
       : username_{parse_username(a)},
         mail_server_{parse_server(a)},
         domain_{parse_domain(a)} {}
+
   static string parse_username(string_view a) {
     return {begin(a), begin(a) + a.find('@')};
   };
@@ -66,5 +69,7 @@ class User {
   EmailAddress address_;
   Password password_;
 };
+
+}  // namespace concordo
 
 #endif  // USERS_H
