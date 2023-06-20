@@ -12,8 +12,9 @@
 
 #include "channels.h"
 
-namespace concordo {
+namespace concordo::server {
 
+using namespace concordo::channel;
 using std::string, std::string_view, std::unordered_map, std::unordered_set;
 
 class Server {
@@ -30,6 +31,6 @@ class Server {
   unordered_set<int> members_id_;
 };
 
-}  // namespace concordo
+}  // namespace concordo::server
 
 #endif  // SERVERS_H

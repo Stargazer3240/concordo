@@ -10,7 +10,7 @@
 #include <string_view>
 #include <utility>
 
-namespace concordo {
+namespace concordo::user {
 
 using std::string_view, std::string, std::begin, std::find;
 
@@ -70,6 +70,6 @@ class User {
   Password password_;
 };
 
-}  // namespace concordo
+}  // namespace concordo::user
 
 #endif  // USERS_H

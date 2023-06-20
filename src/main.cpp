@@ -5,7 +5,7 @@
 #include "system.h"
 
 int main() {
-  using System = concordo::System;
+  using System = concordo::system::System;
 
   return 0;
 }

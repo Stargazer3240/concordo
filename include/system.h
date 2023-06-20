@@ -13,8 +13,11 @@
 
 enum class SystemState { kGuest, kLogged_In, kJoinedServer, kJoinedChannel };
 
-namespace concordo {
+namespace concordo::system {
 
+using namespace concordo::user;
+using namespace concordo::channel;
+using namespace concordo::server;
 using std::unordered_set;
 
 class System {
@@ -31,6 +34,6 @@ class System {
   Channel current_channel_;
 };
 
-}  // namespace concordo
+}  // namespace concordo::system
 
 #endif  // SYSTEM_H
