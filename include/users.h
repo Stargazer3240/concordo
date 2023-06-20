@@ -14,6 +14,7 @@ using std::string_view, std::string, std::begin, std::find;
 
 class EmailAddress {
  public:
+  EmailAddress() = default;
   explicit EmailAddress(string_view a)
       : username_{parse_username(a)},
         mail_server_{parse_server(a)},
@@ -39,6 +40,7 @@ class EmailAddress {
 
 class Password {
  public:
+  Password() = default;
   explicit Password(string_view p) : password_{p} {}
 
  private:
@@ -47,6 +49,7 @@ class Password {
 
 class User {
  public:
+  User() = default;
   User(string_view n, EmailAddress a, Password p)
       : name_{n}, address_{std::move(a)}, password_{std::move(p)} {}
 

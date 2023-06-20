@@ -30,6 +30,7 @@ class Message {
 
 class Channel {
  public:
+  Channel() = default;
   explicit Channel(string_view name) : name_{name} {}
 
   [[nodiscard]] string getName() const { return name_; }
@@ -40,6 +41,7 @@ class Channel {
 
 class TextChannel : public Channel {
  public:
+  TextChannel() = default;
   explicit TextChannel(string_view name) : Channel(name) {}
 
   [[nodiscard]] vector<Message> getMessages() const { return messages_; }
@@ -50,9 +52,10 @@ class TextChannel : public Channel {
 
 class VoiceChannel : public Channel {
  public:
+  VoiceChannel() = default;
   explicit VoiceChannel(string_view name) : Channel(name) {}
 
-  [[nodiscard]] Message getMessage() const { return last_message_; }
+  [[nodiscard]] Message listen_message() const { return last_message_; }
 
  private:
   Message last_message_;
