@@ -7,15 +7,14 @@
 
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
 #include "channels.h"
 
 namespace concordo::server {
 
 using namespace concordo::channel;
-using std::string, std::string_view, std::unordered_map, std::unordered_set;
+using std::string, std::string_view, std::vector;
 
 class Server {
  public:
@@ -27,8 +26,8 @@ class Server {
   string name_;
   string description_;
   string invite_code_;
-  unordered_map<string, Channel*> channels_;
-  unordered_set<int> members_id_;
+  vector<Channel*> channels_;
+  vector<int> members_id_;
 };
 
 }  // namespace concordo::server
