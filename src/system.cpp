@@ -66,12 +66,53 @@ void System::disconnect() {
 
 void System::create_server(string_view name) {
   if (check_server(name)) {
+    server_list_.emplace_back(logged_user_.getId(), name);
+    cout << "Server created\n";
+  } else {
+    cout << "There is already a server with that name\n";
   }
 }
 
 bool System::check_server(string_view name) {
   return ranges::none_of(
       server_list_, [&](Server& s) { return server::check_name(s, name); });
+}
+
+void System::change_description(const ServerDetails& sd) {
+  if (check_server(sd.name)) {
+    Server s{get_server(sd.name)};
+    if (check_owner(s, logged_user_)) {
+      s.setDescription(sd.description);
+      print_info_changed(make_tuple("Description", s.getName(), "changed"));
+    } else {
+      print_no_permission("description");
+    }
+  } else {
+    print_abscent(sd.name);
+  }
+}
+
+void System::change_invite(const ServerDetails& sd) {
+  if (check_server(sd.name)) {
+    Server s{get_server(sd.name)};
+    if (check_owner(s, logged_user_)) {
+      s.setInvite(sd.invite_code);
+      if (!sd.invite_code.empty()) {
+        print_info_changed(make_tuple("Invite code", s.getName(), "changed"));
+      } else {
+        print_info_changed(make_tuple("Invite code", s.getName(), "removed"));
+      }
+    } else {
+      print_no_permission("invite code");
+    }
+  } else {
+    print_abscent(sd.name);
+  }
+}
+
+Server System::get_server(string_view name) {
+  return *(ranges::find_if(
+      server_list_, [&](Server& s) { return server::check_name(s, name); }));
 }
 
 void quit() {

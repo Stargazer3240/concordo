@@ -35,8 +35,9 @@ class System {
 
   void create_server(string_view name);
   bool check_server(string_view name);
-  void change_description(string_view name, string_view desc);
-  void change_invite(string_view name, string_view code);
+  void change_description(const ServerDetails& sd);
+  Server get_server(string_view name);
+  void change_invite(const ServerDetails& sd);
   void list_servers();
   void remove_server(string_view name);
   void leave_server(string_view name);

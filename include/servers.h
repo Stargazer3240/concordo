@@ -10,11 +10,19 @@
 #include <vector>
 
 #include "channels.h"
+#include "users.h"
 
 namespace concordo::server {
 
 using namespace concordo::channel;
+using namespace concordo::user;
 using std::string, std::string_view, std::vector;
+
+struct ServerDetails {
+  string name;
+  string description;
+  string invite_code;
+};
 
 class Server {
  public:
@@ -22,6 +30,8 @@ class Server {
   explicit Server(int id, string_view n) : owner_id_{id}, name_{n} {}
 
   [[nodiscard]] string getName() const { return name_; }
+  void setDescription(string_view desc) { this->description_ = desc; }
+  void setInvite(string_view code) { this->invite_code_ = code; }
 
  private:
   int owner_id_{};
@@ -33,6 +43,10 @@ class Server {
 };
 
 bool check_name(const Server& s, string_view name);
+bool check_owner(const Server& s, const User& u);
+void print_abscent(string_view name);
+void print_no_permission(string_view sv);
+void print_info_changed(tuple<string_view, string_view, string_view> info);
 
 }  // namespace concordo::server
 
