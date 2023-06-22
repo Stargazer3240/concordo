@@ -11,25 +11,34 @@
 
 namespace concordo::user {
 
-using std::string_view, std::string;
-
-struct EmailAddress {
-  string email_address;
-};
-
-struct Password {
-  string password;
-};
+using std::ostream, std::string_view, std::string;
 
 struct Name {
   string name;
 };
 
+ostream& operator<<(ostream& os, const Name& n);
+
+struct EmailAddress {
+  string email_address;
+};
+
+ostream& operator<<(ostream& os, const EmailAddress& a);
+
+struct Password {
+  string password;
+};
+
+ostream& operator<<(ostream& os, const Password& p);
+
 class User {
  public:
   User() = default;
-  User(Name n, EmailAddress a, Password p)
-      : name_{std::move(n)}, address_{std::move(a)}, password_{std::move(p)} {}
+  User(int id, Name n, EmailAddress a, Password p)
+      : id_{id},
+        name_{std::move(n)},
+        address_{std::move(a)},
+        password_{std::move(p)} {}
 
   [[nodiscard]] int getId() const { return id_; }
   [[nodiscard]] Name getName() const { return name_; }
