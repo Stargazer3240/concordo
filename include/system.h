@@ -27,10 +27,10 @@ class System {
   [[nodiscard]] vector<User> getUserList() const { return user_list_; }
 
   void create_user(string_view args);
+  bool check_user(string_view address);
   void user_login(string_view cred);
-  bool check_user(EmailAddress a);
-  User get_user(EmailAddress a);
   bool check_credentials(string_view cred);
+  User get_user(string_view address);
   void disconnect();
 
   void create_server(string_view name);

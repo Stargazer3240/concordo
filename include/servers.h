@@ -21,6 +21,8 @@ class Server {
   Server() = default;
   explicit Server(int id, string_view n) : owner_id_{id}, name_{n} {}
 
+  [[nodiscard]] string getName() const { return name_; }
+
  private:
   int owner_id_{};
   string name_;
