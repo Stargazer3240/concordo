@@ -6,7 +6,6 @@
 #define SYSTEM_H
 
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include "channels.h"
@@ -32,6 +31,17 @@ class System {
   bool check_user(EmailAddress a);
   User get_user(EmailAddress a);
   bool check_credentials(string_view cred);
+  void disconnect();
+
+  void create_server(string_view name);
+  bool check_server(string_view name);
+  void change_description(string_view name, string_view desc);
+  void change_invite(string_view name, string_view code);
+  void list_servers();
+  void remove_server(string_view name);
+  void leave_server(string_view name);
+
+  void list_participants();
 
  private:
   using enum SystemState;
@@ -45,13 +55,6 @@ class System {
 };
 
 void quit();
-
-bool check_address(const User& u, const EmailAddress& a);
-bool check_password(const User& u, const Password& p);
-
-tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);
-
-pair<EmailAddress, Password> parse_credentials(string_view cred);
 
 }  // namespace concordo::system
 

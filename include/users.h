@@ -7,11 +7,10 @@
 
 #include <string>
 #include <string_view>
-#include <utility>
 
 namespace concordo::user {
 
-using std::ostream, std::string_view, std::string;
+using std::ostream, std::string_view, std::string, std::pair, std::tuple;
 
 struct Name {
   string name;
@@ -51,6 +50,12 @@ class User {
   EmailAddress address_;
   Password password_;
 };
+
+bool check_address(const User& u, const EmailAddress& a);
+bool check_password(const User& u, const Password& p);
+
+tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);
+pair<EmailAddress, Password> parse_credentials(string_view cred);
 
 }  // namespace concordo::user
 
