@@ -25,10 +25,11 @@ using std::pair, std::string_view, std::vector, std::tuple;
 class System {
  public:
   [[nodiscard]] SystemState getState() const { return current_state_; }
+  [[nodiscard]] vector<User> getUserList() const { return user_list_; }
 
   void create_user(string_view args);
   void user_login(string_view cred);
-  bool check_new_user(EmailAddress a);
+  bool check_user(EmailAddress a);
   User get_user(EmailAddress a);
   bool check_credentials(string_view cred);
 
@@ -40,6 +41,7 @@ class System {
   User logged_user_;
   Server current_server_;
   Channel current_channel_;
+  int last_id_{};
 };
 
 void quit();
@@ -47,7 +49,7 @@ void quit();
 bool check_address(const User& u, const EmailAddress& a);
 bool check_password(const User& u, const Password& p);
 
-tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred);
+tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);
 
 pair<EmailAddress, Password> parse_credentials(string_view cred);
 
