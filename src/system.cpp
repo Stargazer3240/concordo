@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <ranges>
 
 #include "users.h"
 
@@ -55,23 +56,40 @@ bool check_password(const User& u, const Password& p) {
 }
 
 tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred) {
-  EmailAddress a{{cred.begin(), cred.begin() + cred.find(' ')}};
-  cred = move_view(cred, ' ');
-  Password p{{cred.begin(), cred.find(' ')}};
-  cred = move_view(cred, ' ');
-  Name n{{cred.begin(), cred.end()}};
+  EmailAddress a;
+  Password p;
+  Name n;
+  int i{0};
+  for (const auto word : std::views::split(cred, ' ')) {
+    switch (i) {
+      case 0:
+        a.email_address = {word.begin(), word.end()};
+        break;
+      case 1:
+        p.password = {word.begin(), word.end()};
+        break;
+      default:
+        n.name += {word.begin(), word.end()};
+        break;
+    }
+    ++i;
+  }
   return {a, p, n};
 }
 
 pair<EmailAddress, Password> parse_credentials(string_view cred) {
-  EmailAddress a{{cred.begin(), cred.begin() + cred.find(' ')}};
-  cred = move_view(cred, ' ');
-  Password p{{cred.begin(), cred.find(' ')}};
+  EmailAddress a;
+  Password p;
+  int i{0};
+  for (const auto word : std::views::split(cred, ' ')) {
+    if (i == 0) {
+      a.email_address = {word.begin(), word.end()};
+    } else {
+      p.password = {word.begin(), word.end()};
+    }
+    ++i;
+  }
   return {a, p};
-}
-
-string move_view(string_view sv, char del) {
-  return {sv.begin() + sv.find(del)};
 }
 
 void quit() {

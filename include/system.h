@@ -51,8 +51,6 @@ tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred);
 
 pair<EmailAddress, Password> parse_credentials(string_view cred);
 
-string move_view(string_view sv, char del);
-
 }  // namespace concordo::system
 
 #endif  // SYSTEM_H
