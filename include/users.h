@@ -39,12 +39,6 @@ class User {
   string password_;
 };
 
-bool check_address(const User& u, string_view a);
-bool check_password(const User& u, string_view p);
-
-tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);
-pair<EmailAddress, Password> parse_credentials(string_view cred);
-
 }  // namespace concordo::user
 
 #endif  // USERS_H

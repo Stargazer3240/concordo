@@ -55,6 +55,17 @@ class System {
   int last_id_{};
 };
 
+bool check_address(const User& u, string_view a);
+bool check_password(const User& u, string_view p);
+tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);
+pair<EmailAddress, Password> parse_credentials(string_view cred);
+
+bool check_name(const Server& s, string_view name);
+bool check_owner(const Server& s, const User& u);
+void print_abscent(string_view name);
+void print_no_permission(string_view sv);
+void print_info_changed(tuple<string_view, string_view, string_view> info);
+
 void quit();
 
 }  // namespace concordo::system
