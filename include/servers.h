@@ -29,9 +29,14 @@ class Server {
   Server() = default;
   explicit Server(int id, string_view n) : owner_id_{id}, name_{n} {}
 
+  [[nodiscard]] int getOwner() const { return owner_id_; }
   [[nodiscard]] string getName() const { return name_; }
+  [[nodiscard]] string getInvite() const { return invite_code_; }
+  [[nodiscard]] vector<int> getMembers() const { return members_ids_; }
   void setDescription(string_view desc) { this->description_ = desc; }
   void setInvite(string_view code) { this->invite_code_ = code; }
+
+  void add_member(const User& u) { members_ids_.push_back(u.getId()); }
 
  private:
   int owner_id_{};
@@ -39,7 +44,7 @@ class Server {
   string description_;
   string invite_code_;
   vector<Channel*> channels_;
-  vector<int> members_id_;
+  vector<int> members_ids_;
 };
 
 }  // namespace concordo::server

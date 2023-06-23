@@ -4,6 +4,8 @@
 
 #include "system.h"
 
+#include <bits/ranges_base.h>
+
 #include <algorithm>
 #include <iostream>
 #include <ranges>
@@ -19,7 +21,7 @@ using std::cout;
 void System::create_user(string_view args) {
   auto [n, a, p] = parse_new_credentials(args);
   Credentials c(n, a, p);
-  if (check_user(a)) {
+  if (!check_user(a)) {
     ++last_id_;
     user_list_.emplace_back(last_id_, c);
     cout << "User created\n";
@@ -29,8 +31,8 @@ void System::create_user(string_view args) {
 }
 
 bool System::check_user(string_view address) {
-  return ranges::none_of(user_list_,
-                         [&](User& u) { return check_address(u, address); });
+  return ranges::any_of(user_list_,
+                        [&](User& u) { return check_address(u, address); });
 }
 
 void System::user_login(string_view cred) {
@@ -41,6 +43,16 @@ void System::user_login(string_view cred) {
     cout << "Logged-in as " << address << '\n';
   } else {
     cout << "User or password invalid!\n";
+  }
+}
+
+void System::disconnect() {
+  if (current_state_ == kLogged_In) {
+    current_state_ = kGuest;
+    cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
+    logged_user_ = User();
+  } else {
+    cout << "Not connected\n";
   }
 }
 
@@ -56,28 +68,15 @@ User System::get_user(string_view address) {
                            [&](User& u) { return check_address(u, address); }));
 }
 
-void System::disconnect() {
-  if (current_state_ == kLogged_In) {
-    current_state_ = kGuest;
-    cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
-    logged_user_ = User();
-  } else {
-    cout << "Not connected\n";
-  }
-}
-
 void System::create_server(string_view name) {
-  if (check_server(name)) {
+  if (!check_server(name)) {
     server_list_.emplace_back(logged_user_.getId(), name);
+    Server s{get_server(name)};
+    s.add_member(logged_user_);
     cout << "Server created\n";
   } else {
     cout << "There is already a server with that name\n";
   }
-}
-
-bool System::check_server(string_view name) {
-  return ranges::none_of(
-      server_list_, [&](Server& s) { return check_name(s, name); });
 }
 
 void System::change_description(const ServerDetails& sd) {
@@ -112,10 +111,57 @@ void System::change_invite(const ServerDetails& sd) {
   }
 }
 
-Server System::get_server(string_view name) {
-  return *(ranges::find_if(
-      server_list_, [&](Server& s) { return check_name(s, name); }));
+void System::list_servers() {
+  for (const auto& server : server_list_) {
+    cout << server.getName() << '\n';
+  }
 }
+
+void System::remove_server(string_view name) {
+  if (check_server(name)) {
+    Server s{get_server(name)};
+    if (check_owner(s, logged_user_)) {
+      server_list_.erase(find_server(name));
+      cout << "Server '" << name << "' was removed\n";
+    } else {
+      cout << "You can't remove a server that isn't yours\n";
+    }
+  } else {
+    print_abscent(name);
+  }
+}
+
+void System::enter_server(const ServerDetails& sd) {
+  if (check_server(sd.name)) {
+    Server s{get_server(sd.name)};
+    if (sd.invite_code == s.getInvite() || check_owner(s, logged_user_)) {
+      current_server_ = s;
+      current_state_ = kJoinedServer;
+      cout << "Joined server with success\n";
+      if (!check_member(s, logged_user_)) {
+        s.add_member(logged_user_);
+      }
+    } else {
+      cout << "Server requires invite code\n";
+    }
+  } else {
+    print_abscent(sd.name);
+  }
+}
+
+void System::leave_server(string_view name) {}
+
+bool System::check_server(string_view name) {
+  return ranges::any_of(server_list_,
+                        [&](Server& s) { return check_name(s, name); });
+}
+
+ItVector System::find_server(string_view name) {
+  return ranges::find_if(server_list_,
+                         [&](Server& s) { return check_name(s, name); });
+}
+
+Server System::get_server(string_view name) { return *(find_server(name)); }
 
 bool check_address(const User& u, string_view a) { return u.getEmail() == a; }
 
@@ -160,6 +206,15 @@ pair<EmailAddress, Password> parse_credentials(string_view cred) {
 
 bool check_name(const Server& s, string_view name) {
   return s.getName() == name;
+}
+
+bool check_owner(const Server& s, const User& u) {
+  return s.getOwner() == u.getId();
+}
+
+bool check_member(const Server& s, const User& u) {
+  return ranges::any_of(s.getMembers(),
+                        [&](int id) { return id == u.getId(); });
 }
 
 void print_abscent(string_view name) {

@@ -20,6 +20,8 @@ using namespace concordo::user;
 using namespace concordo::channel;
 using namespace concordo::server;
 using std::pair, std::string_view, std::vector, std::tuple;
+using ItVector =
+    std::ranges::borrowed_iterator_t<vector<Server, std::allocator<Server>>&>;
 
 class System {
  public:
@@ -29,20 +31,21 @@ class System {
   void create_user(string_view args);
   bool check_user(string_view address);
   void user_login(string_view cred);
+  void disconnect();
   bool check_credentials(string_view cred);
   User get_user(string_view address);
-  void disconnect();
 
   void create_server(string_view name);
-  bool check_server(string_view name);
   void change_description(const ServerDetails& sd);
-  Server get_server(string_view name);
   void change_invite(const ServerDetails& sd);
   void list_servers();
   void remove_server(string_view name);
+  void enter_server(const ServerDetails& sd);
   void leave_server(string_view name);
-
   void list_participants();
+  bool check_server(string_view name);
+  ItVector find_server(string_view name);
+  Server get_server(string_view name);
 
  private:
   using enum SystemState;
@@ -62,6 +65,7 @@ pair<EmailAddress, Password> parse_credentials(string_view cred);
 
 bool check_name(const Server& s, string_view name);
 bool check_owner(const Server& s, const User& u);
+bool check_member(const Server& s, const User& u);
 void print_abscent(string_view name);
 void print_no_permission(string_view sv);
 void print_info_changed(tuple<string_view, string_view, string_view> info);
