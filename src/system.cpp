@@ -12,9 +12,10 @@
 
 namespace concordo::system {
 
+using std::cout;
 namespace ranges = std::ranges;
 namespace views = std::views;
-using std::cout;
+using Credentials = user::Credentials;
 
 void System::create_user(string_view args) {
   const auto [n, a, p] = parse_new_credentials(args);
