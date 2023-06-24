@@ -17,24 +17,19 @@ namespace views = std::views;
 using std::cout;
 
 void System::create_user(string_view args) {
-  auto [n, a, p] = parse_new_credentials(args);
-  Credentials c(n, a, p);
+  const auto [n, a, p] = parse_new_credentials(args);
+  const Credentials c(n, a, p);
   if (!check_user(a)) {
     ++last_id_;
-    user_list_.emplace_back(last_id_, c);
+    users_list_.emplace_back(last_id_, c);
     cout << "User created\n";
   } else {
     cout << "User already exist!\n";
   }
 }
 
-bool System::check_user(string_view address) {
-  return ranges::any_of(
-      user_list_, [&](const User& u) { return check_address(u, address); });
-}
-
 void System::user_login(string_view cred) {
-  string address{(parse_credentials(cred)).first};
+  const string address{(parse_credentials(cred)).first};
   if (check_credentials(cred)) {
     logged_user_ = get_user(address);
     current_state_ = kLogged_In;
@@ -50,32 +45,41 @@ void System::disconnect() {
   logged_user_ = User();
 }
 
-bool System::check_credentials(string_view cred) {
-  auto [a, p] = parse_credentials(cred);
-  return ranges::any_of(user_list_, [&](const User& u) {
+bool System::check_credentials(string_view cred) const {
+  const pair ap = parse_credentials(cred);
+  const EmailAddress a{ap.first};
+  const Password p{ap.second};
+  return ranges::any_of(users_list_, [&](const User& u) {
     return check_address(u, a) && check_password(u, p);
   });
 }
 
-ItVectorUser System::find_user(int id) {
-  return ranges::find_if(user_list_,
+bool System::check_user(string_view address) const {
+  return ranges::any_of(
+      users_list_, [&](const User& u) { return check_address(u, address); });
+}
+
+ItVectorUser System::find_user(int id) const {
+  return ranges::find_if(users_list_,
                          [&](const User& u) { return check_id(u, id); });
 }
 
-ItVectorUser System::find_user(string_view address) {
+ItVectorUser System::find_user(string_view address) const {
   return ranges::find_if(
-      user_list_, [&](const User& u) { return check_address(u, address); });
+      users_list_, [&](const User& u) { return check_address(u, address); });
 }
 
-User System::get_user(int id) { return *(find_user(id)); }
+User System::get_user(int id) const { return *(find_user(id)); }
 
-User System::get_user(string_view address) { return *(find_user(address)); }
+User System::get_user(string_view address) const {
+  return *(find_user(address));
+}
 
-string System::get_user_name(int id) { return get_user(id).getName(); }
+string System::get_user_name(int id) const { return get_user(id).getName(); }
 
 void System::create_server(string_view name) {
   if (!check_server(name)) {
-    server_list_.emplace_back(logged_user_.getId(), name);
+    servers_list_.emplace_back(logged_user_.getId(), name);
     Server s{get_server(name)};
     s.add_member(logged_user_);
     cout << "Server created\n";
@@ -116,17 +120,17 @@ void System::change_invite(const ServerDetails& sd) {
   }
 }
 
-void System::list_servers() {
-  for (const auto& server : server_list_) {
+void System::list_servers() const {
+  for (const auto& server : servers_list_) {
     cout << server.getName() << '\n';
   }
 }
 
 void System::remove_server(string_view name) {
   if (check_server(name)) {
-    Server s{get_server(name)};
+    const Server s{get_server(name)};
     if (check_owner(s, logged_user_)) {
-      server_list_.erase(find_server(name));
+      servers_list_.erase(find_server(name));
       cout << "Server '" << name << "' was removed\n";
     } else {
       cout << "You can't remove a server that isn't yours\n";
@@ -163,22 +167,24 @@ void System::leave_server() {
   }
 }
 
-void System::list_participants() {
+void System::list_participants() const {
   ranges::for_each(current_server_.getMembers(),
                    [this](int id) { cout << get_user_name(id) << '\n'; });
 }
 
-bool System::check_server(string_view name) {
-  return ranges::any_of(server_list_,
+bool System::check_server(string_view name) const {
+  return ranges::any_of(servers_list_,
                         [&](const Server& s) { return check_name(s, name); });
 }
 
-ItVectorServer System::find_server(string_view name) {
-  return ranges::find_if(server_list_,
+ItVectorServer System::find_server(string_view name) const {
+  return ranges::find_if(servers_list_,
                          [&](const Server& s) { return check_name(s, name); });
 }
 
-Server System::get_server(string_view name) { return *(find_server(name)); }
+Server System::get_server(string_view name) const {
+  return *(find_server(name));
+}
 
 bool check_id(const User& u, int id) { return u.getId() == id; }
 

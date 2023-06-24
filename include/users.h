@@ -10,10 +10,7 @@
 
 namespace concordo::user {
 
-using std::ostream, std::string_view, std::string, std::pair, std::tuple;
-using Name = string;
-using EmailAddress = string;
-using Password = string;
+using std::string;
 
 struct Credentials {
   string name;
