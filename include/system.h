@@ -19,10 +19,15 @@ using User = user::User;
 using Channel = channel::Channel;
 using Server = server::Server;
 using ServerDetails = server::ServerDetails;
+
+// Iterator returned by range::find
 using ItVectorServer = std::ranges::borrowed_iterator_t<
     const vector<Server, std::allocator<Server>>&>;
 using ItVectorUser =
     std::ranges::borrowed_iterator_t<const vector<User, std::allocator<User>>&>;
+
+// Used to better represent the output of the credential parsing functions, as
+// they return tuple/pair of strings only.
 using Name = string;
 using EmailAddress = string;
 using Password = string;
@@ -81,22 +86,75 @@ class System {
    *  @param cred the credentials parsed from the used command
    *  @see parse_credentials(); check_address(); check_password()
    *  @see User; User.address_; User.password_
+   *  @return True if the credentials are valid
    */
   [[nodiscard]] bool check_credentials(string_view cred) const;
 
   /*! Check if the user exists in the system.
    *
    *  The check is valid if there is an user in the system with the same address
-   * as the input addres.
+   *  as the input addres.
    *  @param address the address to be checked
    *  @see user_list_; check_address()
    *  @see User; User.address_
+   *  @return True if the email address was used by any user registered
    */
   [[nodiscard]] bool check_user(string_view address) const;
+
+  /*! Find the position of an user in the system.
+   *
+   *  Checks through the entire user list checking if an user has the same id
+   *  as the input one, giving the position of it when it is found. It expects
+   *  that the user being looked for exists.
+   *  @param id the id to be checked
+   *  @see user_list_; check_id()
+   *  @see User; User.id_
+   *  @return An iterator pointing to the position of the user in the user list
+   */
   [[nodiscard]] ItVectorUser find_user(int id) const;
+
+  /*! Find the position of an user in the system.
+   *
+   *  Checks through the entire user list checking if an user has the same
+   * address as the input one, giving the position of it when it is found. It
+   * expects that the user being looked for exists.
+   *  @param address the address to be checked
+   *  @see user_list_; check_address(); get_user()
+   *  @see User; User.address_
+   *  @return An iterator pointing to the position of the user in the user list
+   */
   [[nodiscard]] ItVectorUser find_user(string_view address) const;
+
+  /*! Deferences the user found by the find_user method.
+   *
+   *  It's expected that the user exists in the system, so a check should
+   *  be done before calling this method.
+   *  @param address the address to be checked
+   *  @see user_list_; check_address(); find_user(); check_credentials()
+   *  @see User; User.address_
+   *  @return The user pointed by the iterator returned by find_user
+   */
   [[nodiscard]] User get_user(string_view address) const;
+
+  /*! Deferences the user found by the find_user method.
+   *
+   *  It's expected that the user exists in the system, so a check should
+   *  be done before calling this method.
+   *  @param id the id to be checked
+   *  @see user_list_; check_id(); find_user(); check_credentials()
+   *  @see User; User.id_
+   *  @return The user pointed by the iterator returned by find_user
+   */
   [[nodiscard]] User get_user(int id) const;
+
+  /*! Get the name of the user with the same id and the input one.
+   *
+   *  This method expects that the input id is valid.
+   *  @param id the id to be checked
+   *  @see get_user(); user_list_
+   *  @see User; User.id_; User.name_
+   *  @return The name of said user
+   */
   [[nodiscard]] string get_user_name(int id) const;
 
   void create_server(string_view name);
