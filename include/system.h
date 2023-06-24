@@ -20,8 +20,10 @@ using namespace concordo::user;
 using namespace concordo::channel;
 using namespace concordo::server;
 using std::pair, std::string_view, std::vector, std::tuple;
-using ItVector =
+using ItVectorServer =
     std::ranges::borrowed_iterator_t<vector<Server, std::allocator<Server>>&>;
+using ItVectorUser =
+    std::ranges::borrowed_iterator_t<vector<User, std::allocator<User>>&>;
 
 class System {
  public:
@@ -33,7 +35,11 @@ class System {
   void user_login(string_view cred);
   void disconnect();
   bool check_credentials(string_view cred);
+  ItVectorUser find_user(int id);
+  ItVectorUser find_user(string_view address);
   User get_user(string_view address);
+  User get_user(int id);
+  string get_user_name(int id);
 
   void create_server(string_view name);
   void change_description(const ServerDetails& sd);
@@ -41,10 +47,10 @@ class System {
   void list_servers();
   void remove_server(string_view name);
   void enter_server(const ServerDetails& sd);
-  void leave_server(string_view name);
+  void leave_server();
   void list_participants();
   bool check_server(string_view name);
-  ItVector find_server(string_view name);
+  ItVectorServer find_server(string_view name);
   Server get_server(string_view name);
 
  private:
@@ -58,6 +64,7 @@ class System {
   int last_id_{};
 };
 
+bool check_id(const User& u, int id);
 bool check_address(const User& u, string_view a);
 bool check_password(const User& u, string_view p);
 tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);

@@ -4,8 +4,6 @@
 
 #include "system.h"
 
-#include <bits/ranges_base.h>
-
 #include <algorithm>
 #include <iostream>
 #include <ranges>
@@ -31,8 +29,8 @@ void System::create_user(string_view args) {
 }
 
 bool System::check_user(string_view address) {
-  return ranges::any_of(user_list_,
-                        [&](User& u) { return check_address(u, address); });
+  return ranges::any_of(
+      user_list_, [&](const User& u) { return check_address(u, address); });
 }
 
 void System::user_login(string_view cred) {
@@ -47,13 +45,9 @@ void System::user_login(string_view cred) {
 }
 
 void System::disconnect() {
-  if (current_state_ == kLogged_In) {
-    current_state_ = kGuest;
-    cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
-    logged_user_ = User();
-  } else {
-    cout << "Not connected\n";
-  }
+  current_state_ = kGuest;
+  cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
+  logged_user_ = User();
 }
 
 bool System::check_credentials(string_view cred) {
@@ -63,10 +57,21 @@ bool System::check_credentials(string_view cred) {
   });
 }
 
-User System::get_user(string_view address) {
-  return *(ranges::find_if(user_list_,
-                           [&](User& u) { return check_address(u, address); }));
+ItVectorUser System::find_user(int id) {
+  return ranges::find_if(user_list_,
+                         [&](const User& u) { return check_id(u, id); });
 }
+
+ItVectorUser System::find_user(string_view address) {
+  return ranges::find_if(
+      user_list_, [&](const User& u) { return check_address(u, address); });
+}
+
+User System::get_user(int id) { return *(find_user(id)); }
+
+User System::get_user(string_view address) { return *(find_user(address)); }
+
+string System::get_user_name(int id) { return get_user(id).getName(); }
 
 void System::create_server(string_view name) {
   if (!check_server(name)) {
@@ -149,19 +154,33 @@ void System::enter_server(const ServerDetails& sd) {
   }
 }
 
-void System::leave_server(string_view name) {}
+void System::leave_server() {
+  if (current_server_.getName() != Server().getName()) {
+    cout << "Leaving server '" << current_server_.getName() << "'\n";
+    current_server_ = Server();
+  } else {
+    cout << "You are not visualising any server\n";
+  }
+}
+
+void System::list_participants() {
+  ranges::for_each(current_server_.getMembers(),
+                   [this](int id) { cout << get_user_name(id) << '\n'; });
+}
 
 bool System::check_server(string_view name) {
   return ranges::any_of(server_list_,
-                        [&](Server& s) { return check_name(s, name); });
+                        [&](const Server& s) { return check_name(s, name); });
 }
 
-ItVector System::find_server(string_view name) {
+ItVectorServer System::find_server(string_view name) {
   return ranges::find_if(server_list_,
-                         [&](Server& s) { return check_name(s, name); });
+                         [&](const Server& s) { return check_name(s, name); });
 }
 
 Server System::get_server(string_view name) { return *(find_server(name)); }
+
+bool check_id(const User& u, int id) { return u.getId() == id; }
 
 bool check_address(const User& u, string_view a) { return u.getEmail() == a; }
 
