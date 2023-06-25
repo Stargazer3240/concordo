@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 -->
 
 # Concordo
-TODO
+Concordo is a CLI based, networkless and voiceless Discord clone.
 
 ## Instalation
 
