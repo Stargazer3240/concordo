@@ -10,13 +10,14 @@
 
 #include "users.h"
 
-namespace concordo::system {
+namespace concordo {
 
 using std::cout;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using Credentials = user::Credentials;
 
+// User related commands.
 void System::create_user(string_view args) {
   const auto [n, a, p] = parse_new_credentials(args);
   const Credentials c(n, a, p);
@@ -78,6 +79,7 @@ User System::get_user(string_view address) const {
 
 string System::get_user_name(int id) const { return get_user(id).getName(); }
 
+// Server related commands.
 void System::create_server(string_view name) {
   if (!check_server(name)) {
     servers_list_.emplace_back(logged_user_.getId(), name);
@@ -94,7 +96,7 @@ void System::change_description(const ServerDetails& sd) {
     Server s{get_server(sd.name)};
     if (check_owner(s, logged_user_)) {
       s.setDescription(sd.description);
-      print_info_changed(make_tuple("Description", s.getName(), "changed"));
+      print_info_changed(make_tuple("Description", sd.name, "changed"));
     } else {
       print_no_permission("description");
     }
@@ -163,6 +165,7 @@ void System::leave_server() {
   if (current_server_.getName() != Server().getName()) {
     cout << "Leaving server '" << current_server_.getName() << "'\n";
     current_server_ = Server();
+    current_state_ = kLogged_In;
   } else {
     cout << "You are not visualising any server\n";
   }
@@ -187,6 +190,7 @@ Server System::get_server(string_view name) const {
   return *(find_server(name));
 }
 
+// User related helping functions.
 bool check_id(const User& u, int id) { return u.getId() == id; }
 
 bool check_address(const User& u, string_view a) { return u.getEmail() == a; }
@@ -230,6 +234,7 @@ pair<EmailAddress, Password> parse_credentials(string_view cred) {
   return {a, p};
 }
 
+// Server related helping functions.
 bool check_name(const Server& s, string_view name) {
   return s.getName() == name;
 }
@@ -243,6 +248,7 @@ bool check_member(const Server& s, const User& u) {
                         [&](int id) { return id == u.getId(); });
 }
 
+// General system related helping functions.
 void print_abscent(string_view name) {
   cout << "Server '" << name << "' doesn't exist\n";
 }
@@ -261,4 +267,4 @@ void quit() {
   std::exit(0);
 }
 
-}  // namespace concordo::system
+}  // namespace concordo

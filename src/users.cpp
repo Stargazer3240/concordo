@@ -4,4 +4,4 @@
 
 #include "users.h"
 
-namespace concordo::user {}  // namespace concordo::user
+namespace user {}  // namespace user

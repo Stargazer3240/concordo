@@ -4,4 +4,4 @@
 
 #include "servers.h"
 
-namespace concordo::server {}  // namespace concordo::server
+namespace server {}  // namespace server
