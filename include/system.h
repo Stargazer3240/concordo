@@ -22,12 +22,6 @@ using Channel = channel::Channel;
 using Server = server::Server;
 using ServerDetails = server::ServerDetails;
 
-// Iterator returned by range::find.
-using ItVectorServer = std::ranges::borrowed_iterator_t<
-    const vector<Server, std::allocator<Server>>&>;
-using ItVectorUser =
-    std::ranges::borrowed_iterator_t<const vector<User, std::allocator<User>>&>;
-
 // Used to better represent the output of the credential parsing functions, as
 // they return tuple/pair of strings only and what credential is each can be
 // confusing.
@@ -84,17 +78,17 @@ class System {
   /*! Runs the commands allowed to a guest.
    *  @see SystemState; current_state_; guest_commands_
    */
-  void run_guest(const CommandLine& cl);
+  void run_guest_cmd(const CommandLine& cl);
 
   /*! Runs the commands allowed to a logged-in user.
    *  @see SystemState; current_state_; logged_commands_
    */
-  void run_logged(const CommandLine& cl);
+  void run_logged_cmd(const CommandLine& cl);
 
   /*! Runs the commands allowed to an user visualizing a server.
    *  @see SystemState; current_state_; server_commands_
    */
-  void run_server(const CommandLine& cl);
+  void run_server_cmd(const CommandLine& cl);
 
   /*! Checks if the input command is a valid command.
    *  @param cmd the command to be checked
@@ -102,26 +96,6 @@ class System {
    *  @see guest_commands_; logged_commands_; server_commands_
    */
   bool check_all_commands(const string& cmd);
-
-  /*! Creates an user in the system.
-   *  @param args the arguments of the create-user command.
-   *  @see check_user(); users_list_; last_id_
-   *  @see user::User; user::User::id_; last_id_; user::Credentials
-   */
-  void create_user(string_view args);
-
-  /*! Logs in an user in the system.
-   *  @param cred the credentials parsed from the login command.
-   *  @see check_credentials(); logged_user_; current_state_
-   *  @see user::User; user::User::address_
-   */
-  void user_login(string_view cred);
-
-  /*! Disconnects the current user from the system.
-   *  @see current_state_; logged_user_
-   *  @see user::User; user::User::address_
-   */
-  void disconnect();
 
   /*! Checks if the input credentials are valid.
    *
@@ -154,7 +128,7 @@ class System {
    *  @see user::User; user::User::id_
    *  @return An iterator pointing to the position of the user in the user list
    */
-  [[nodiscard]] ItVectorUser find_user(int id) const;
+  [[nodiscard]] auto find_user(int id) const;
 
   /*! Find the position of an user in the system.
    *
@@ -162,48 +136,69 @@ class System {
    *  address as the input one, giving the position of it when it is found. It
    *  expects that the user being looked for exists.
    *  @param address the address to be checked
-   *  @see users_list_; get_user()
+   *  @see users_list_;
    *  @see user::User; user::User::address_
    *  @return An iterator pointing to the position of the user in the user list
    */
-  [[nodiscard]] ItVectorUser find_user(string_view address) const;
-
-  /*! Deferences the user found by the find_user method.
-   *
-   *  It's expected that the user exists in the system, so a check should
-   *  be done before calling this method.
-   *  @param id the id to be checked
-   *  @see users_list_; find_user(); check_credentials()
-   *  @see user::User; user::User::id_
-   *  @return The user pointed by the iterator returned by find_user
-   */
-  [[nodiscard]] User get_user(int id) const;
-
-  /*! Deferences the user found by the find_user method.
-   *
-   *  It's expected that the user exists in the system, so a check should
-   *  be done before calling this method.
-   *  @param address the address to be checked
-   *  @see users_list_; find_user();
-   * check_credentials()
-   *  @see user::User; user::User::address_
-   *  @return The user pointed by the iterator returned by find_user
-   */
-  [[nodiscard]] User get_user(string_view address) const;
+  [[nodiscard]] auto find_user(string_view address) const;
 
   /*! Gets the name of the user with the same id and the input one.
    *
    *  This method expects that the input id is valid.
    *  @param id the id to be checked
-   *  @see get_user(); users_list_
+   *  @see find_user(); users_list_
    *  @see user::User; user::User::id_; user::User::name_
    *  @return The name of said user
    */
   [[nodiscard]] string get_user_name(int id) const;
 
+  /*! Creates an user in the system.
+   *  @param args the arguments of the create-user command.
+   *  @see check_user(); users_list_; last_id_
+   *  @see user::User; user::User::id_; last_id_; user::Credentials
+   */
+  void create_user(string_view args);
+
+  /*! Logs in an user in the system.
+   *  @param cred the credentials parsed from the login command.
+   *  @see check_credentials(); logged_user_; current_state_
+   *  @see user::User; user::User::address_
+   */
+  void user_login(string_view cred);
+
+  /*! Disconnects the current user from the system.
+   *  @see current_state_; logged_user_
+   *  @see user::User; user::User::address_
+   */
+  void disconnect();
+
+  /*! Check if the server exists in the system.
+   *
+   *  The check is valid if there is a server in the system with the same name
+   *  as the input name.
+   *  @param name the name to be checked
+   *  @see servers_list_
+   *  @see server::Server; server::Server::name_
+   *  @return True if the name was used by any registered server
+   */
+  [[nodiscard]] bool check_server(string_view name) const;
+
+  /*! Find the position of an server in the system.
+   *
+   *  Goes through the entire server list checking if a server has the same
+   *  name as the input one, giving the position of it when it is found. It
+   *  expects that the server being looked for exists.
+   *  @param name the name to be checked
+   *  @see servers_list_
+   *  @see server::Server; server::Server::name_
+   *  @return An iterator pointing to the position of the server in the server
+   * list
+   */
+  [[nodiscard]] auto find_server(string_view name);
+
   /*! Creates a server in the system.
    *  @param name the name of the server to be created.
-   *  @see check_server(); get_server(); servers_list_
+   *  @see check_server(); find_server(); servers_list_
    *  @see server::Server::add_member()
    */
   void create_server(string_view name);
@@ -213,7 +208,7 @@ class System {
    *  To change the description of a server, you have to be its owner.
    *  @param sd the details of the server to be changed, including its name and
    *  the new description.
-   *  @see check_server(); get_server();
+   *  @see check_server(); find_server();
    *  @see server::Server::setDescription(); server::ServerDetails
    */
   void change_description(const ServerDetails& sd);
@@ -225,7 +220,7 @@ class System {
    *  removed.
    *  @param sd the details of the server to be changed, including its name and
    *  the new invite code.
-   *  @see check_server(); get_server();
+   *  @see check_server(); find_server();
    *  @see server::Server::setInvite(); server::ServerDetails
    */
   void change_invite(const ServerDetails& sd);
@@ -239,7 +234,7 @@ class System {
   /*! Removes a server from the system.
    *
    *  To remove a server, you have to be its owner.
-   *  @see check_server(); get_server(); servers_list_
+   *  @see check_server(); find_server(); servers_list_
    *  @see server::Server
    */
   void remove_server(string_view name);
@@ -269,41 +264,6 @@ class System {
    */
   void list_participants() const;
 
-  /*! Check if the server exists in the system.
-   *
-   *  The check is valid if there is a server in the system with the same name
-   *  as the input name.
-   *  @param name the name to be checked
-   *  @see servers_list_
-   *  @see server::Server; server::Server::name_
-   *  @return True if the name was used by any registered server
-   */
-  [[nodiscard]] bool check_server(string_view name) const;
-
-  /*! Find the position of an server in the system.
-   *
-   *  Goes through the entire server list checking if a server has the same
-   *  name as the input one, giving the position of it when it is found. It
-   *  expects that the server being looked for exists.
-   *  @param name the name to be checked
-   *  @see servers_list_
-   *  @see server::Server; server::Server::name_
-   *  @return An iterator pointing to the position of the server in the server
-   * list
-   */
-  [[nodiscard]] ItVectorServer find_server(string_view name) const;
-
-  /*! Deferences the server found by the find_server method.
-   *
-   *  It's expected that the server exists in the system, so a check should
-   *  be done before calling this method.
-   *  @param name the name to be checked
-   *  @see servers_list_; find_server()
-   *  @see server::Server; server::Server::name_
-   *  @return The server pointed by the iterator returned by find_server
-   */
-  [[nodiscard]] Server get_server(string_view name) const;
-
  private:
   using enum SystemState;
   SystemState current_state_{kGuest}; /*!< The current state of the system */
@@ -316,18 +276,17 @@ class System {
   unordered_set<string> guest_commands_{
       "create-user", "login"}; /*!< The commands allowed to a kGuest state. */
   unordered_set<string> logged_commands_{
-      "disconnect",      "create-server",
-      "set-server-desc", "set-server-invite-code",
-      "list-servers",    "remove-server",
+      "create-server",
+      "set-server-desc",
+      "set-server-invite-code",
+      "list-servers",
+      "remove-server",
       "enter-server"}; /*!< The commands allowed to a kLogged_In state. */
   unordered_set<string> server_commands_{
       "leave-server", "list-participants"}; /*! The commands allowed to a
                                                kJoinedServer state. */
   // unordered_set<string> channel_commands_ {};
 };
-
-// Quit Concordo and exit the program.
-void quit();
 
 // Check if the command input in the CLI is valid.
 bool check_command(const unordered_set<string>& s, const string& c);
@@ -342,7 +301,7 @@ bool check_args(string_view cmd_line);
 string parse_args(string_view cmd_line);
 
 // Parse the details in the argument of a server command that needs it.
-ServerDetails parse_details(string_view args, int cmd = 0);
+ServerDetails parse_details(string_view args, int cmd);
 
 // Check if the user's id is equal to the parameter id.
 bool check_id(const User& u, int id);

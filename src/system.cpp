@@ -27,27 +27,31 @@ void System::init() {
   string args;
   while (getline(cin, cmd_line)) {
     cmd = parse_cmd(cmd_line);
+    if (cmd == "quit") {
+      cout << "Leaving Concordo\n";
+      break;
+    }
     if (check_args(cmd_line)) {
       args = parse_args(cmd_line);
     }
     this->run({cmd, args});
   }
-  quit();
 }
 
 void System::run(const CommandLine& cl) {
-  if (cl.command == "quit") {
-    quit();
+  // Disconnect can be run at any state that isn't guest.
+  if (cl.command == "disconnect") {
+    disconnect();
   } else if (check_all_commands(cl.command)) {
     switch (current_state_) {
       case kGuest:
-        run_guest(cl);
+        run_guest_cmd(cl);
         break;
       case kLogged_In:
-        run_logged(cl);
+        run_logged_cmd(cl);
         break;
       case kJoinedServer:
-        run_server(cl);
+        run_server_cmd(cl);
         break;
       case kJoinedChannel:
         // TODO
@@ -58,7 +62,7 @@ void System::run(const CommandLine& cl) {
   }
 }
 
-void System::run_guest(const CommandLine& cl) {
+void System::run_guest_cmd(const CommandLine& cl) {
   if (check_command(guest_commands_, cl.command)) {
     if (cl.command == "create-user") {
       create_user(cl.arguments);
@@ -70,29 +74,27 @@ void System::run_guest(const CommandLine& cl) {
   }
 }
 
-void System::run_logged(const CommandLine& cl) {
+void System::run_logged_cmd(const CommandLine& cl) {
   if (check_command(logged_commands_, cl.command)) {
-    if (cl.command == "disconnect") {
-      disconnect();
-    } else if (cl.command == "create-server") {
+    if (cl.command == "create-server") {
       create_server(cl.arguments);
     } else if (cl.command == "set-server-desc") {
-      change_description(parse_details(cl.arguments, 1));
+      change_description(parse_details(cl.arguments, 0));
     } else if (cl.command == "set-server-invite-code") {
-      change_invite(parse_details(cl.arguments, 2));
+      change_invite(parse_details(cl.arguments, 1));
     } else if (cl.command == "list-servers") {
       list_servers();
     } else if (cl.command == "remove-server") {
       remove_server(cl.arguments);
     } else {
-      enter_server(parse_details(cl.arguments));
+      enter_server(parse_details(cl.arguments, 2));
     }
   } else {
-    cout << "You are not visualizing any server\n";
+    cout << "You can't do that right now\n";
   }
 }
 
-void System::run_server(const CommandLine& cl) {
+void System::run_server_cmd(const CommandLine& cl) {
   if (check_command(server_commands_, cl.command)) {
     if (cl.command == "leave-server") {
       leave_server();
@@ -100,7 +102,7 @@ void System::run_server(const CommandLine& cl) {
       list_participants();
     }
   } else {
-    cout << "You are not visualizing any channel\n";
+    cout << "You can't do that right now\n";
   }
 }
 
@@ -113,6 +115,32 @@ bool System::check_all_commands(const string& cmd) {
 }
 
 // User related commands.
+bool System::check_credentials(string_view cred) const {
+  const pair ap = parse_credentials(cred);
+  const EmailAddress a{ap.first};
+  const Password p{ap.second};
+  return ranges::any_of(users_list_, [&](const User& u) {
+    return check_address(u, a) && check_password(u, p);
+  });
+}
+
+bool System::check_user(string_view address) const {
+  return ranges::any_of(
+      users_list_, [&](const User& u) { return check_address(u, address); });
+}
+
+auto System::find_user(int id) const {
+  return find_if(users_list_.begin(), users_list_.end(),
+                 [&](const User& u) { return check_id(u, id); });
+}
+
+auto System::find_user(string_view address) const {
+  return find_if(users_list_.begin(), users_list_.end(),
+                 [&](const User& u) { return check_address(u, address); });
+}
+
+string System::get_user_name(int id) const { return find_user(id)->getName(); }
+
 void System::create_user(string_view args) {
   const auto [a, p, n] = parse_new_credentials(args);
   const Credentials c(n, a, p);
@@ -128,7 +156,7 @@ void System::create_user(string_view args) {
 void System::user_login(string_view cred) {
   const string address{(parse_credentials(cred)).first};
   if (check_credentials(cred)) {
-    logged_user_ = get_user(address);
+    logged_user_ = *find_user(address);
     current_state_ = kLogged_In;
     cout << "Logged-in as " << address << '\n';
   } else {
@@ -140,50 +168,28 @@ void System::disconnect() {
   if (current_state_ > kGuest) {
     current_state_ = kGuest;
     cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
+    current_server_ = Server();
     logged_user_ = User();
   } else {
     cout << "Not connected\n";
   }
 }
 
-bool System::check_credentials(string_view cred) const {
-  const pair ap = parse_credentials(cred);
-  const EmailAddress a{ap.first};
-  const Password p{ap.second};
-  return ranges::any_of(users_list_, [&](const User& u) {
-    return check_address(u, a) && check_password(u, p);
-  });
-}
-
-bool System::check_user(string_view address) const {
-  return ranges::any_of(
-      users_list_, [&](const User& u) { return check_address(u, address); });
-}
-
-ItVectorUser System::find_user(int id) const {
-  return ranges::find_if(users_list_,
-                         [&](const User& u) { return check_id(u, id); });
-}
-
-ItVectorUser System::find_user(string_view address) const {
-  return ranges::find_if(
-      users_list_, [&](const User& u) { return check_address(u, address); });
-}
-
-User System::get_user(int id) const { return *(find_user(id)); }
-
-User System::get_user(string_view address) const {
-  return *(find_user(address));
-}
-
-string System::get_user_name(int id) const { return get_user(id).getName(); }
-
 // Server related commands.
+bool System::check_server(string_view name) const {
+  return ranges::any_of(servers_list_,
+                        [&](const Server& s) { return check_name(s, name); });
+}
+
+auto System::find_server(string_view name) {
+  return find_if(servers_list_.begin(), servers_list_.end(),
+                 [&](const Server& s) { return check_name(s, name); });
+}
+
 void System::create_server(string_view name) {
   if (!check_server(name)) {
     servers_list_.emplace_back(logged_user_.getId(), name);
-    Server s{get_server(name)};
-    s.add_member(logged_user_);
+    servers_list_.back().add_member(logged_user_);
     cout << "Server created\n";
   } else {
     cout << "There is already a server with that name\n";
@@ -192,9 +198,9 @@ void System::create_server(string_view name) {
 
 void System::change_description(const ServerDetails& sd) {
   if (check_server(sd.name)) {
-    Server s{get_server(sd.name)};
-    if (check_owner(s, logged_user_)) {
-      s.setDescription(sd.description);
+    auto it{find_server(sd.name)};
+    if (check_owner(*it, logged_user_)) {
+      it->setDescription(sd.description);
       print_info_changed(make_tuple("Description", sd.name, "changed"));
     } else {
       print_no_permission("description");
@@ -206,13 +212,13 @@ void System::change_description(const ServerDetails& sd) {
 
 void System::change_invite(const ServerDetails& sd) {
   if (check_server(sd.name)) {
-    Server s{get_server(sd.name)};
-    if (check_owner(s, logged_user_)) {
-      s.setInvite(sd.invite_code);
+    auto it{find_server(sd.name)};
+    if (check_owner(*it, logged_user_)) {
+      it->setInvite(sd.invite_code);
       if (!sd.invite_code.empty()) {
-        print_info_changed(make_tuple("Invite code", s.getName(), "changed"));
+        print_info_changed(make_tuple("Invite code", it->getName(), "changed"));
       } else {
-        print_info_changed(make_tuple("Invite code", s.getName(), "removed"));
+        print_info_changed(make_tuple("Invite code", it->getName(), "removed"));
       }
     } else {
       print_no_permission("invite code");
@@ -230,9 +236,9 @@ void System::list_servers() const {
 
 void System::remove_server(string_view name) {
   if (check_server(name)) {
-    const Server s{get_server(name)};
-    if (check_owner(s, logged_user_)) {
-      servers_list_.erase(find_server(name));
+    auto it{find_server(name)};
+    if (check_owner(*it, logged_user_)) {
+      servers_list_.erase(it);
       cout << "Server '" << name << "' was removed\n";
     } else {
       cout << "You can't remove a server that isn't yours\n";
@@ -244,14 +250,15 @@ void System::remove_server(string_view name) {
 
 void System::enter_server(const ServerDetails& sd) {
   if (check_server(sd.name)) {
-    Server s{get_server(sd.name)};
-    if (sd.invite_code == s.getInvite() || check_owner(s, logged_user_)) {
-      current_server_ = s;
+    auto it{find_server(sd.name)};
+    if (it->getInvite().empty() || check_owner(*it, logged_user_) ||
+        sd.invite_code == it->getInvite()) {
       current_state_ = kJoinedServer;
       cout << "Joined server with success\n";
-      if (!check_member(s, logged_user_)) {
-        s.add_member(logged_user_);
+      if (!check_member(*it, logged_user_)) {
+        it->add_member(logged_user_);
       }
+      current_server_ = *it;
     } else {
       cout << "Server requires invite code\n";
     }
@@ -275,26 +282,7 @@ void System::list_participants() const {
                    [this](int id) { cout << get_user_name(id) << '\n'; });
 }
 
-bool System::check_server(string_view name) const {
-  return ranges::any_of(servers_list_,
-                        [&](const Server& s) { return check_name(s, name); });
-}
-
-ItVectorServer System::find_server(string_view name) const {
-  return ranges::find_if(servers_list_,
-                         [&](const Server& s) { return check_name(s, name); });
-}
-
-Server System::get_server(string_view name) const {
-  return *(find_server(name));
-}
-
 // System related helper functions.
-void quit() {
-  cout << "Leaving Concordo\n";
-  std::exit(0);
-}
-
 bool check_command(const unordered_set<string>& s, const string& c) {
   return s.contains(c);
 }
@@ -327,31 +315,26 @@ string parse_args(string_view cmd_line) {
 }
 
 ServerDetails parse_details(string_view args, int cmd) {
+  // Change Description, Change Invite Code and Enter Server.
+  enum Command { kDescription, kInvite, kEnter };
   string n;
   string d;
   string ic;
   for (int i{0}; const auto a : views::split(args, ' ')) {
-    switch (cmd) {
-      case 0:
+    if (cmd == kEnter || cmd == kInvite) {
+      if (i == 0) {
         n = {a.begin(), a.end()};
-        break;
-      case 1:
-        if (i == 0) {
-          n = {a.begin(), a.end()};
-        } else {
-          d += {a.begin(), a.end()};
-        }
-        break;
-      case 2:
-        if (i == 0) {
-          n = {a.begin(), a.end()};
-        } else {
-          ic = {a.begin(), a.end()};
-        }
-        break;
-      default:
-        break;
+      } else {
+        ic = {a.begin(), a.end()};
+      }
+    } else {
+      if (i == 0) {
+        n = {a.begin(), a.end()};
+      } else {
+        d += {a.begin(), a.end()};
+      }
     }
+
     ++i;
   }
   return {n, d, ic};

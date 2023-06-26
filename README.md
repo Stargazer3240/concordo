@@ -46,18 +46,17 @@ If you have installed Doxygen, run `$ doxygen` on the root directory. Then open
 - `leave-server`
 - `list-participants`
 
-> **Note**
->
-> The following arguments can't have spaces:
-> - User email
-> - User password
-> - Server name
-> - Server invite code
->
-> `set-server-invite-code` can be used without passing an invite code, making the server public.
+> **Notes**
+> - The following arguments can't have spaces:
+>   - User email
+>   - User password
+>   - Server name
+>   - Server invite code
+> - `set-server-invite-code` can be used without passing an invite code, making the server public.
 
 ## Limitations
-The program expects that the user input a valid command as documented. Failing to do so results in undefined behavior.
+The program expects that the user input a valid command as documented. Failing to do so results in undefined behavior. Also, the program can only run some commands
+at specific stages (by design), but it doesn't output an useful diagnose to guide the user in what state they can used, besides the `create-user`, `login` and `disconnect` commands.
 
 ## Author
 - Fabrício Moura Jácome
