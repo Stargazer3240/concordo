@@ -76,8 +76,7 @@ class Server {
   int owner_id_{}; /*!< The id of the user who created and owns the server. */
   string name_;    /*!< The name of the server. It's unique. */
   string description_; /*!< The description of the server. Can be changed. */
-  string
-      invite_code_; /*!< The invite code of the server. Can be empty or not. */
+  string invite_code_; /*!< The invite code of the server. Can be empty. */
   vector<Channel*> channels_; /*!< The list of channels from the server. */
   vector<int> members_ids_; /*!< The list of ids from the users that are member
                                of the server */

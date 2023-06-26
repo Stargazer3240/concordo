@@ -60,6 +60,8 @@ class System {
   /*! @see users_list_ */
   [[nodiscard]] vector<User> getUserList() const { return users_list_; }
 
+  void init();
+
   /*! Creates an user in the system.
    *  @param args the arguments of the create-user command.
    *  @see check_user(); users_list_; last_id_
@@ -283,7 +285,7 @@ bool check_password(const User& u, string_view p);
 
 // Parse the credentials of a new user, splitting the arguments of create-user
 // command.
-tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred);
+tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred);
 
 // Parse the credentials of an existing user, splitting the arguments of login
 // command.
@@ -302,6 +304,9 @@ bool check_member(const Server& s, const User& u);
 void print_abscent(string_view name);
 void print_no_permission(string_view sv);
 void print_info_changed(tuple<string_view, string_view, string_view> info);
+
+string parse_cmd(string_view cmd_line);
+string parse_args(string_view cmd_line);
 
 // Quit Concordo and exit the program.
 void quit();

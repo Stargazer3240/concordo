@@ -7,15 +7,26 @@
 #include <algorithm>
 #include <iostream>
 #include <ranges>
+#include <string>
 
 #include "users.h"
 
 namespace concordo {
 
-using std::cout;
+using std::cin, std::cout, std::getline, std::string;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using Credentials = user::Credentials;
+
+void System::init() {
+  string cmd_line;
+  string cmd;
+  string args;
+  while (getline(cin, cmd_line)) {
+    cmd = parse_cmd(cmd_line);
+    args = parse_args(cmd_line);
+  }
+}
 
 // User related commands.
 void System::create_user(string_view args) {
@@ -42,9 +53,13 @@ void System::user_login(string_view cred) {
 }
 
 void System::disconnect() {
-  current_state_ = kGuest;
-  cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
-  logged_user_ = User();
+  if (current_state_ > kGuest) {
+    current_state_ = kGuest;
+    cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
+    logged_user_ = User();
+  } else {
+    cout << "Not connected\n";
+  }
 }
 
 bool System::check_credentials(string_view cred) const {
@@ -162,7 +177,7 @@ void System::enter_server(const ServerDetails& sd) {
 }
 
 void System::leave_server() {
-  if (current_server_.getName() != Server().getName()) {
+  if (current_state_ >= kJoinedServer) {
     cout << "Leaving server '" << current_server_.getName() << "'\n";
     current_server_ = Server();
     current_state_ = kLogged_In;
@@ -199,35 +214,37 @@ bool check_password(const User& u, string_view p) {
   return u.getPassword() == p;
 }
 
-tuple<Name, EmailAddress, Password> parse_new_credentials(string_view cred) {
-  Name n;
+tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred) {
   EmailAddress a;
   Password p;
-  for (int i{0}; const auto word : views::split(cred, ' ')) {
+  Name n;
+  for (int i{0}; const auto w : views::split(cred, ' ')) {
     switch (i) {
       case 0:
-        a = {word.begin(), word.end()};
+        a = {w.begin(), w.end()};
         break;
       case 1:
-        p = {word.begin(), word.end()};
+        p = {w.begin(), w.end()};
         break;
       default:
-        n += {word.begin(), word.end()};
+        n += {w.begin(), w.end()};
+        n += " ";
         break;
     }
     ++i;
   }
-  return {n, a, p};
+  n.pop_back();
+  return {a, p, n};
 }
 
 pair<EmailAddress, Password> parse_credentials(string_view cred) {
   EmailAddress a;
   Password p;
-  for (int i{0}; const auto word : views::split(cred, ' ')) {
+  for (int i{0}; const auto w : views::split(cred, ' ')) {
     if (i == 0) {
-      a = {word.begin(), word.end()};
+      a = {w.begin(), w.end()};
     } else {
-      p = {word.begin(), word.end()};
+      p = {w.begin(), w.end()};
     }
     ++i;
   }
@@ -260,6 +277,28 @@ void print_no_permission(string_view sv) {
 void print_info_changed(tuple<string_view, string_view, string_view> info) {
   cout << get<0>(info) << " of server '" << get<1>(info) << "' was "
        << get<2>(info) << "!\n";
+}
+
+string parse_cmd(string_view cmd_line) {
+  string cmd;
+  for (const auto c : views::split(cmd_line, ' ')) {
+    cmd = {c.begin(), c.end()};
+    break;
+  }
+  return cmd;
+}
+
+string parse_args(string_view cmd_line) {
+  string args;
+  for (int i{0}; const auto a : views::split(cmd_line, ' ')) {
+    if (i > 0) {
+      args += {a.begin(), a.end()};
+      args += " ";
+    }
+    ++i;
+  }
+  args.pop_back();
+  return args;
 }
 
 void quit() {
