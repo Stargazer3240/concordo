@@ -32,11 +32,26 @@ After compiling the code, run `$ ./bin/concordo` on the root directory.
 If you have installed Doxygen, run `$ doxygen` on the root directory. Then open
 `./docs/html/index.html` with a modern browser.
 
-### User Interface
-TODO
+### Commands
+- `quit`
+- `create-user EMAIL PASSWORD NAME` 
+- `login EMAIL PASSWORD`
+- `disconnect`
+- `create-server NAME`
+- `set-server-desc NAME DESCRIPTION`
+- `list-servers`
+- `remove-server NAME`
+- `enter-server NAME`
+- `leave-server`
+- `list-participants`
+
+> **Note:** the following arguments can't have spaces
+> - User email 
+> - User password
+> - Server name
 
 ## Limitations
-TODO
+The program expects that the user input a valid command as documented. Fail to do so results in undefined behavior.
 
 ## Author
 - Fabrício Moura Jácome
