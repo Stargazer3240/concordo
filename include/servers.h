@@ -22,8 +22,8 @@ using std::string, std::string_view, std::vector;
  *
  *  The server details are used as input for some system commands.
  *  @see Server
- *  @see concordo::System::change_description().
- * concordo::System::change_invite() concordo::System::enter_server()
+ *  @see concordo::System::change_description();
+ *  concordo::System::change_invite(); concordo::System::enter_server()
  */
 struct ServerDetails {
   string name;        /*!< A server name to be input from the system. */

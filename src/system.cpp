@@ -19,6 +19,7 @@ namespace views = std::views;
 using Credentials = user::Credentials;
 using enum System::SystemState;
 
+// Main system loop.
 void System::init() {
   string cmd_line;
   string cmd;

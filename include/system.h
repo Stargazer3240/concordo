@@ -35,9 +35,12 @@ using Name = string;
 using EmailAddress = string;
 using Password = string;
 
+/*! A struct that contains a line input to the CLI.
+ *  @see System; System::run()
+ */
 struct CommandLine {
-  string command;
-  string arguments;
+  string command;   /*!< The command part of the line. */
+  string arguments; /*!< The argument part of the line. */
 };
 
 /*! A class that represents Concordo's system.
@@ -67,11 +70,30 @@ class System {
   /*! @see users_list_ */
   [[nodiscard]] vector<User> getUserList() const { return users_list_; }
 
+  /*! Starts the main Concordo loop. */
   void init();
 
+  /*! Runs the command input in the CLI.
+   *
+   *  This method respects the current system state to determine what the user
+   *  is allowed to do.
+   *  @see SystemState; current_state_
+   */
   void run(const CommandLine& cl);
+
+  /*! Runs the commands allowed to a guest.
+   *  @see SystemState; current_state_; guest_commands_
+   */
   void run_guest(const CommandLine& cl);
+
+  /*! Runs the commands allowed to a logged-in user.
+   *  @see SystemState; current_state_; logged_commands_
+   */
   void run_logged(const CommandLine& cl);
+
+  /*! Runs the commands allowed to an user visualizing a server.
+   *  @see SystemState; current_state_; server_commands_
+   */
   void run_server(const CommandLine& cl);
 
   /*! Creates an user in the system.
