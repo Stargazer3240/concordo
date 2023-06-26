@@ -96,6 +96,13 @@ class System {
    */
   void run_server(const CommandLine& cl);
 
+  /*! Checks if the input command is a valid command.
+   *  @param cmd the command to be checked
+   *  @return True if the command is valid.
+   *  @see guest_commands_; logged_commands_; server_commands_
+   */
+  bool check_all_commands(const string& cmd);
+
   /*! Creates an user in the system.
    *  @param args the arguments of the create-user command.
    *  @see check_user(); users_list_; last_id_
@@ -327,6 +334,9 @@ bool check_command(const unordered_set<string>& s, const string& c);
 
 // Parse the command part input in the CLI.
 string parse_cmd(string_view cmd_line);
+
+// Check if the command input in the CLI has any argument.
+bool check_args(string_view cmd_line);
 
 // Parse the argument part input in the CLI.
 string parse_args(string_view cmd_line);

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <ranges>
 #include <string>
+#include <unordered_set>
 
 #include "users.h"
 
@@ -26,15 +27,18 @@ void System::init() {
   string args;
   while (getline(cin, cmd_line)) {
     cmd = parse_cmd(cmd_line);
-    args = parse_args(cmd_line);
+    if (check_args(cmd_line)) {
+      args = parse_args(cmd_line);
+    }
     this->run({cmd, args});
   }
+  quit();
 }
 
 void System::run(const CommandLine& cl) {
   if (cl.command == "quit") {
     quit();
-  } else {
+  } else if (check_all_commands(cl.command)) {
     switch (current_state_) {
       case kGuest:
         run_guest(cl);
@@ -49,6 +53,8 @@ void System::run(const CommandLine& cl) {
         // TODO
         break;
     }
+  } else {
+    cout << "Invalid command\n";
   }
 }
 
@@ -98,9 +104,17 @@ void System::run_server(const CommandLine& cl) {
   }
 }
 
+bool System::check_all_commands(const string& cmd) {
+  const vector<unordered_set<string>> all_cmds{
+      guest_commands_, logged_commands_, server_commands_};
+  return ranges::any_of(all_cmds, [=](const unordered_set<string>& s) {
+    return s.contains(cmd);
+  });
+}
+
 // User related commands.
 void System::create_user(string_view args) {
-  const auto [n, a, p] = parse_new_credentials(args);
+  const auto [a, p, n] = parse_new_credentials(args);
   const Credentials c(n, a, p);
   if (!check_user(a)) {
     ++last_id_;
@@ -292,6 +306,11 @@ string parse_cmd(string_view cmd_line) {
     break;
   }
   return cmd;
+}
+
+bool check_args(string_view cmd_line) {
+  ranges::split_view sv{cmd_line, ' '};
+  return ranges::distance(sv.begin(), sv.end()) > 1;
 }
 
 string parse_args(string_view cmd_line) {
