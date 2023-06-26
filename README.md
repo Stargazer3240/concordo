@@ -37,18 +37,24 @@ If you have installed Doxygen, run `$ doxygen` on the root directory. Then open
 - `create-user EMAIL PASSWORD NAME` 
 - `login EMAIL PASSWORD`
 - `disconnect`
-- `create-server NAME`
-- `set-server-desc NAME DESCRIPTION`
+- `create-server SERVERNAME`
+- `set-server-desc SERVERNAME DESCRIPTION`
+- `set-server-invite-code SERVERNAME INVITECODE`
 - `list-servers`
-- `remove-server NAME`
-- `enter-server NAME`
+- `remove-server SERVERNAME`
+- `enter-server SERVERNAME`
 - `leave-server`
 - `list-participants`
 
-> **Note:** the following arguments can't have spaces
-> - User email 
+> **Note**
+>
+> The following arguments can't have spaces:
+> - User email
 > - User password
 > - Server name
+> - Server invite code
+>
+> `set-server-invite-code` can be used without passing an invite code, making the server public.
 
 ## Limitations
 The program expects that the user input a valid command as documented. Failing to do so results in undefined behavior.

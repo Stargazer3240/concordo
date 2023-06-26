@@ -346,7 +346,7 @@ ServerDetails parse_details(string_view args, int cmd) {
         if (i == 0) {
           n = {a.begin(), a.end()};
         } else {
-          ic += {a.begin(), a.end()};
+          ic = {a.begin(), a.end()};
         }
         break;
       default:
