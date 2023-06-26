@@ -17,6 +17,7 @@ using std::cin, std::cout, std::getline, std::string;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using Credentials = user::Credentials;
+using enum System::SystemState;
 
 void System::init() {
   string cmd_line;
@@ -25,6 +26,74 @@ void System::init() {
   while (getline(cin, cmd_line)) {
     cmd = parse_cmd(cmd_line);
     args = parse_args(cmd_line);
+    this->run({cmd, args});
+  }
+}
+
+void System::run(const CommandLine& cl) {
+  if (cl.command == "quit") {
+    quit();
+  } else {
+    switch (current_state_) {
+      case kGuest:
+        run_guest(cl);
+        break;
+      case kLogged_In:
+        run_logged(cl);
+        break;
+      case kJoinedServer:
+        run_server(cl);
+        break;
+      case kJoinedChannel:
+        // TODO
+        break;
+    }
+  }
+}
+
+void System::run_guest(const CommandLine& cl) {
+  if (check_command(guest_commands_, cl.command)) {
+    if (cl.command == "create-user") {
+      create_user(cl.arguments);
+    } else {
+      user_login(cl.arguments);
+    }
+  } else {
+    cout << "You have to login to run that command\n";
+  }
+}
+
+void System::run_logged(const CommandLine& cl) {
+  if (check_command(logged_commands_, cl.command)) {
+    if (cl.command == "disconnect") {
+      disconnect();
+    } else if (cl.command == "create-server") {
+      create_server(cl.arguments);
+    } else if (cl.command == "set-server-desc") {
+      change_description(parse_details(cl.arguments, 1));
+    } else if (cl.command == "set-server-invite-code") {
+      change_invite(parse_details(cl.arguments, 2));
+    } else if (cl.command == "list-servers") {
+      list_servers();
+    } else if (cl.command == "remove-server") {
+      remove_server(cl.arguments);
+    } else {
+      enter_server(parse_details(cl.arguments));
+    }
+  } else {
+    cout << "You are not visualizing any server\n";
+  }
+}
+
+void System::run_server(const CommandLine& cl) {
+  if (check_command(server_commands_, cl.command)) {
+    if (cl.command == "leave-server") {
+      leave_server();
+    } else if (cl.command == "list-participants") {
+      list_participants();
+    }
+  } else {
+    cout << "You are not visualizing any channel\n";
   }
 }
 
@@ -205,6 +274,69 @@ Server System::get_server(string_view name) const {
   return *(find_server(name));
 }
 
+// System related helper functions.
+void quit() {
+  cout << "Leaving Concordo\n";
+  std::exit(0);
+}
+
+bool check_command(const unordered_set<string>& s, const string& c) {
+  return s.contains(c);
+}
+
+string parse_cmd(string_view cmd_line) {
+  string cmd;
+  for (const auto c : views::split(cmd_line, ' ')) {
+    cmd = {c.begin(), c.end()};
+    break;
+  }
+  return cmd;
+}
+
+string parse_args(string_view cmd_line) {
+  string args;
+  for (int i{0}; const auto a : views::split(cmd_line, ' ')) {
+    if (i > 0) {
+      args += {a.begin(), a.end()};
+      args += " ";
+    }
+    ++i;
+  }
+  args.pop_back();
+  return args;
+}
+
+ServerDetails parse_details(string_view args, int cmd) {
+  string n;
+  string d;
+  string ic;
+  for (int i{0}; const auto a : views::split(args, ' ')) {
+    switch (cmd) {
+      case 0:
+        n = {a.begin(), a.end()};
+        break;
+      case 1:
+        if (i == 0) {
+          n = {a.begin(), a.end()};
+        } else {
+          d += {a.begin(), a.end()};
+        }
+        break;
+      case 2:
+        if (i == 0) {
+          n = {a.begin(), a.end()};
+        } else {
+          ic += {a.begin(), a.end()};
+        }
+        break;
+      default:
+        break;
+    }
+    ++i;
+  }
+  return {n, d, ic};
+}
+
 // User related helping functions.
 bool check_id(const User& u, int id) { return u.getId() == id; }
 
@@ -265,7 +397,7 @@ bool check_member(const Server& s, const User& u) {
                         [&](int id) { return id == u.getId(); });
 }
 
-// General system related helping functions.
+// Print related helping functions.
 void print_abscent(string_view name) {
   cout << "Server '" << name << "' doesn't exist\n";
 }
@@ -277,33 +409,6 @@ void print_no_permission(string_view sv) {
 void print_info_changed(tuple<string_view, string_view, string_view> info) {
   cout << get<0>(info) << " of server '" << get<1>(info) << "' was "
        << get<2>(info) << "!\n";
-}
-
-string parse_cmd(string_view cmd_line) {
-  string cmd;
-  for (const auto c : views::split(cmd_line, ' ')) {
-    cmd = {c.begin(), c.end()};
-    break;
-  }
-  return cmd;
-}
-
-string parse_args(string_view cmd_line) {
-  string args;
-  for (int i{0}; const auto a : views::split(cmd_line, ' ')) {
-    if (i > 0) {
-      args += {a.begin(), a.end()};
-      args += " ";
-    }
-    ++i;
-  }
-  args.pop_back();
-  return args;
-}
-
-void quit() {
-  cout << "Leaving Concordo\n";
-  std::exit(0);
 }
 
 }  // namespace concordo
