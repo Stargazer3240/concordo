@@ -51,7 +51,7 @@ If you have installed Doxygen, run `$ doxygen` on the root directory. Then open
 > - Server name
 
 ## Limitations
-The program expects that the user input a valid command as documented. Fail to do so results in undefined behavior.
+The program expects that the user input a valid command as documented. Failing to do so results in undefined behavior.
 
 ## Author
 - Fabrício Moura Jácome
