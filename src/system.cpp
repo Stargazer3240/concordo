@@ -14,7 +14,7 @@
 
 namespace concordo {
 
-using std::cin, std::cout, std::getline, std::string;
+using std::array, std::cin, std::cout, std::getline;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using Credentials = user::Credentials;
@@ -106,11 +106,11 @@ void System::run_server_cmd(const CommandLine& cl) {
   }
 }
 
-bool System::check_all_commands(const string& cmd) {
-  const vector<unordered_set<string>> all_cmds{
+bool System::check_all_commands(string_view cmd) {
+  const array<unordered_set<string>, 3> all_cmds{
       guest_commands_, logged_commands_, server_commands_};
   return ranges::any_of(all_cmds, [=](const unordered_set<string>& s) {
-    return s.contains(cmd);
+    return s.contains(string(cmd));
   });
 }
 
@@ -283,8 +283,8 @@ void System::list_participants() const {
 }
 
 // System related helper functions.
-bool check_command(const unordered_set<string>& s, const string& c) {
-  return s.contains(c);
+bool check_command(const unordered_set<string>& s, string_view c) {
+  return s.contains(string(c));
 }
 
 string parse_cmd(string_view cmd_line) {

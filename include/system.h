@@ -95,7 +95,7 @@ class System {
    *  @return True if the command is valid.
    *  @see guest_commands_; logged_commands_; server_commands_
    */
-  bool check_all_commands(const string& cmd);
+  bool check_all_commands(string_view cmd);
 
   /*! Checks if the input credentials are valid.
    *
@@ -289,7 +289,7 @@ class System {
 };
 
 // Check if the command input in the CLI is valid.
-bool check_command(const unordered_set<string>& s, const string& c);
+bool check_command(const unordered_set<string>& s, string_view c);
 
 // Parse the command part input in the CLI.
 string parse_cmd(string_view cmd_line);
