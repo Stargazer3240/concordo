@@ -5,14 +5,18 @@
 #ifndef CHANNELS_H
 #define CHANNELS_H
 
-#include <ctime>
+#include <chrono>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace channel {
 
 using std::string, std::string_view, std::tm, std::vector;
+using std::chrono::current_zone, std::chrono::system_clock,
+    std::chrono::zoned_time;
+using duration = std::chrono::duration<long, std::nano>;
 
 /*! A class that represents a message sent in a channel.
  *  @see Channel
@@ -26,11 +30,11 @@ class Message {
 
   /*! A constructor to be used by the system.
    */
-  Message(tm date_time, int sender_id, string_view content)
-      : date_time_{date_time}, sender_id_{sender_id}, content_{content} {}
+  Message(int sender_id, string_view content)
+      : sender_id_{sender_id}, content_{content} {}
 
   /*! @see date_time_ */
-  [[nodiscard]] tm getDateTime() const { return date_time_; }
+  [[nodiscard]] zoned_time<duration> getDateTime() const { return date_time_; }
 
   /*! @see sender_id_ */
   [[nodiscard]] int getId() const { return sender_id_; }
@@ -39,9 +43,11 @@ class Message {
   [[nodiscard]] string getContent() const { return content_; }
 
  private:
-  tm date_time_{};  /*!< The date and time when the message was sent. */
-  int sender_id_{}; /*!< The id of the user who sent the message. */
-  string content_;  /*!< The content written into the message. */
+  zoned_time<duration> date_time_{
+      current_zone(),
+      system_clock::now()}; /*!< The date and time when the message was sent. */
+  int sender_id_{};         /*!< The id of the user who sent the message. */
+  string content_;          /*!< The content written into the message. */
 };
 
 /*! A base class that represents a channel from a Concordo's server.
