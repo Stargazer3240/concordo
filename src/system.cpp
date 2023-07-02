@@ -54,7 +54,7 @@ void System::run(const CommandLine& cl) {
         run_server_cmd(cl);
         break;
       case kJoinedChannel:
-        // TODO
+        run_channel_cmd(cl);
         break;
     }
   } else {
@@ -100,6 +100,26 @@ void System::run_server_cmd(const CommandLine& cl) {
       leave_server();
     } else if (cl.command == "list-participants") {
       list_participants();
+    } else if (cl.command == "list-channels") {
+      list_channels();
+    } else if (cl.command == "create-channel") {
+      create_channel(cl.arguments);
+    } else if (cl.command == "enter-channel") {
+      enter_channel(cl.arguments);
+    } else if (cl.command == "leave-channel") {
+      leave_channel();
+    }
+  } else {
+    cout << "You can't do that right now\n";
+  }
+}
+
+void System::run_channel_cmd(const CommandLine& cl) {
+  if (check_command(channel_commands_, cl.command)) {
+    if (cl.command == "leave-server") {
+      send_message(cl.arguments);
+    } else {
+      list_messages();
     }
   } else {
     cout << "You can't do that right now\n";
@@ -107,8 +127,8 @@ void System::run_server_cmd(const CommandLine& cl) {
 }
 
 bool System::check_all_commands(string_view cmd) {
-  const array<unordered_set<string>, 3> all_cmds{
-      guest_commands_, logged_commands_, server_commands_};
+  const array<unordered_set<string>, 4> all_cmds{
+      guest_commands_, logged_commands_, server_commands_, channel_commands_};
   return ranges::any_of(all_cmds, [=](const unordered_set<string>& s) {
     return s.contains(string(cmd));
   });
@@ -315,29 +335,29 @@ string parse_args(string_view cmd_line) {
 }
 
 ServerDetails parse_details(string_view args, int cmd) {
-  // Change Description, Change Invite Code and Enter Server.
+  // "set-server-description", "set-server-invite-code" and "enter-server".
   enum Command { kDescription, kInvite, kEnter };
-  string n;
-  string d;
-  string ic;
+  string name;
+  string desc;
+  string invite;
   for (int i{0}; const auto a : views::split(args, ' ')) {
     if (cmd == kEnter || cmd == kInvite) {
       if (i == 0) {
-        n = {a.begin(), a.end()};
+        name = {a.begin(), a.end()};
       } else {
-        ic = {a.begin(), a.end()};
+        invite = {a.begin(), a.end()};
       }
     } else {
       if (i == 0) {
-        n = {a.begin(), a.end()};
+        name = {a.begin(), a.end()};
       } else {
-        d += {a.begin(), a.end()};
+        desc += {a.begin(), a.end()};
       }
     }
 
     ++i;
   }
-  return {n, d, ic};
+  return {name, desc, invite};
 }
 
 // User related helping functions.
