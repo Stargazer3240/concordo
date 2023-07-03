@@ -13,10 +13,8 @@
 
 namespace channel {
 
-using std::string, std::string_view, std::tm, std::vector;
-using std::chrono::current_zone, std::chrono::system_clock,
-    std::chrono::zoned_time;
-using duration = std::chrono::duration<long, std::nano>;
+using std::string, std::string_view, std::vector;
+using std::chrono::system_clock;
 
 struct ChannelDetails {
   string name;
@@ -39,7 +37,7 @@ class Message {
       : sender_id_{sender_id}, content_{content} {}
 
   /*! @see date_time_ */
-  [[nodiscard]] zoned_time<duration> getDateTime() const { return date_time_; }
+  [[nodiscard]] time_t getDateTime() const { return date_time_; }
 
   /*! @see sender_id_ */
   [[nodiscard]] int getId() const { return sender_id_; }
@@ -48,11 +46,11 @@ class Message {
   [[nodiscard]] string getContent() const { return content_; }
 
  private:
-  zoned_time<duration> date_time_{
-      current_zone(),
-      system_clock::now()}; /*!< The date and time when the message was sent. */
-  int sender_id_{};         /*!< The id of the user who sent the message. */
-  string content_;          /*!< The content written into the message. */
+  time_t date_time_{
+      system_clock::to_time_t(system_clock::now())}; /*!< The date and time when
+                                                        the message was sent. */
+  int sender_id_{}; /*!< The id of the user who sent the message. */
+  string content_;  /*!< The content written into the message. */
 };
 
 /*! A base class that represents a channel from a Concordo's server.
@@ -69,6 +67,11 @@ class Channel {
    */
   Channel() = default;
 
+  Channel(const Channel &) = default;
+  Channel(Channel &&) = delete;
+  Channel &operator=(const Channel &) = default;
+  Channel &operator=(Channel &&) = delete;
+  virtual ~Channel() = default;
   /*! A constructor to be used by the system.
    */
   explicit Channel(string_view name) : name_{name} {}
@@ -98,7 +101,7 @@ class TextChannel : public Channel {
   explicit TextChannel(string_view name) : Channel(name) {}
 
   /*! @see messages_ */
-  [[nodiscard]] vector<Message> getMessages() const { return messages_; }
+  vector<Message> getMessages() { return messages_; }
 
  private:
   vector<Message> messages_; /*!< The list of all messages sent to a channel. */
@@ -122,7 +125,7 @@ class VoiceChannel : public Channel {
   explicit VoiceChannel(string_view name) : Channel(name) {}
 
   /*! @see last_message_ */
-  [[nodiscard]] Message getMessage() const { return last_message_; }
+  Message getMessage() { return last_message_; }
 
  private:
   Message last_message_; /*!< The last "voice" message sent in the channel. */

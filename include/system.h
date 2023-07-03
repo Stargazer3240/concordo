@@ -18,6 +18,7 @@ namespace concordo {
 using std::string, std::string_view, std::vector, std::tuple,
     std::unordered_set;
 using User = user::User;
+using Message = channel::Message;
 using Channel = channel::Channel;
 using Server = server::Server;
 using ServerDetails = server::ServerDetails;
@@ -261,9 +262,13 @@ class System {
    */
   void list_participants() const;
 
-  void list_channels() const;
-
   bool check_channel(const ChannelDetails& cd) const;
+
+  auto find_channel(string_view name);
+
+  auto find_channel(string_view name) const;
+
+  void list_channels() const;
 
   void create_channel(string_view args);
 
@@ -274,6 +279,8 @@ class System {
   void send_message(string_view msg);
 
   void list_messages() const;
+
+  void print_message(const Message& m) const;
 
  private:
   using enum SystemState;
