@@ -8,13 +8,14 @@
 #include <iostream>
 #include <ranges>
 #include <string>
+#include <type_traits>
 #include <unordered_set>
 
-#include "users.h"
+#include "channels.h"
 
 namespace concordo {
 
-using std::array, std::cin, std::cout, std::getline;
+using std::array, std::cin, std::cout, std::getline, std::shared_ptr;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using Credentials = user::Credentials;
@@ -136,11 +137,9 @@ bool System::check_all_commands(string_view cmd) {
 
 // User related commands.
 bool System::check_credentials(string_view cred) const {
-  const pair ap = parse_credentials(cred);
-  const EmailAddress a{ap.first};
-  const Password p{ap.second};
+  const Credentials c = parse_credentials(cred);
   return ranges::any_of(users_list_, [&](const User& u) {
-    return check_address(u, a) && check_password(u, p);
+    return check_address(u, c.address) && check_password(u, c.password);
   });
 }
 
@@ -174,11 +173,11 @@ void System::create_user(string_view args) {
 }
 
 void System::user_login(string_view cred) {
-  const string address{(parse_credentials(cred)).first};
+  const string a{(parse_credentials(cred)).address};
   if (check_credentials(cred)) {
-    logged_user_ = *find_user(address);
+    logged_user_ = *find_user(a);
     current_state_ = kLogged_In;
-    cout << "Logged-in as " << address << '\n';
+    cout << "Logged-in as " << a << '\n';
   } else {
     cout << "User or password invalid!\n";
   }
@@ -302,6 +301,42 @@ void System::list_participants() const {
                    [this](int id) { cout << get_user_name(id) << '\n'; });
 }
 
+// Channel related commands.
+void System::list_channels() const {
+  cout << "#Text Channels\n";
+  list_text_channels(current_server_);
+  cout << "#Voice Channels\n";
+  list_voice_channels(current_server_);
+}
+
+void System::create_channel(string_view args) {
+  using TextChannel = channel::TextChannel;
+  using VoiceChannel = channel::VoiceChannel;
+  const ChannelDetails cd = parse_channel(args);
+  if (!check_channel(cd)) {
+    if (cd.type == "Text") {
+      auto c = make_shared<TextChannel>(cd.name);
+      current_server_.getChannels().push_back(c);
+    } else {
+      auto c = make_shared<VoiceChannel>(cd.name);
+      current_server_.getChannels().push_back(c);
+    }
+    cout << cd.type << " Channel '" << cd.name << "' created\n";
+  } else {
+    cout << cd.type << " Channel '" << cd.name << "' already exists\n";
+  }
+}
+
+bool System::check_channel(const ChannelDetails& cd) const {
+  return ranges::any_of(
+      current_server_.getChannels(), [=](const shared_ptr<Channel>& c) {
+        if (cd.type == "Text") {
+          return c->getName() == cd.name && check_text_channel(*c);
+        }
+        return c->getName() == cd.name && check_voice_channel(*c);
+      });
+}
+
 // System related helper functions.
 bool check_command(const unordered_set<string>& s, string_view c) {
   return s.contains(string(c));
@@ -369,41 +404,41 @@ bool check_password(const User& u, string_view p) {
   return u.getPassword() == p;
 }
 
-tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred) {
-  EmailAddress a;
-  Password p;
-  Name n;
+Credentials parse_new_credentials(string_view cred) {
+  string addr;
+  string pass;
+  string name;
   for (int i{0}; const auto w : views::split(cred, ' ')) {
     switch (i) {
       case 0:
-        a = {w.begin(), w.end()};
+        addr = {w.begin(), w.end()};
         break;
       case 1:
-        p = {w.begin(), w.end()};
+        pass = {w.begin(), w.end()};
         break;
       default:
-        n += {w.begin(), w.end()};
-        n += " ";
+        name += {w.begin(), w.end()};
+        name += " ";
         break;
     }
     ++i;
   }
-  n.pop_back();
-  return {a, p, n};
+  name.pop_back();
+  return {addr, pass, name};
 }
 
-pair<EmailAddress, Password> parse_credentials(string_view cred) {
-  EmailAddress a;
-  Password p;
+Credentials parse_credentials(string_view cred) {
+  string addr;
+  string pass;
   for (int i{0}; const auto w : views::split(cred, ' ')) {
     if (i == 0) {
-      a = {w.begin(), w.end()};
+      addr = {w.begin(), w.end()};
     } else {
-      p = {w.begin(), w.end()};
+      pass = {w.begin(), w.end()};
     }
     ++i;
   }
-  return {a, p};
+  return {addr, pass, ""};
 }
 
 // Server related helping functions.
@@ -418,6 +453,45 @@ bool check_owner(const Server& s, const User& u) {
 bool check_member(const Server& s, const User& u) {
   return ranges::any_of(s.getMembers(),
                         [&](int id) { return id == u.getId(); });
+}
+
+// Channel related helping functions.
+void list_text_channels(const Server& server) {
+  for (const shared_ptr<Channel>& channel : server.getChannels()) {
+    if (check_text_channel(*channel)) {
+      cout << channel->getName() << '\n';
+    }
+  }
+}
+
+void list_voice_channels(const Server& server) {
+  for (const shared_ptr<Channel>& channel : server.getChannels()) {
+    if (check_voice_channel(*channel)) {
+      cout << channel->getName() << '\n';
+    }
+  }
+}
+
+bool check_text_channel(const Channel& channel) {
+  return typeid(channel).name() == typeid(channel::TextChannel).name();
+}
+
+bool check_voice_channel(const Channel& channel) {
+  return typeid(channel).name() == typeid(channel::VoiceChannel).name();
+}
+
+ChannelDetails parse_channel(string_view args) {
+  string name;
+  string type;
+  for (int i{0}; const auto w : views::split(args, ' ')) {
+    if (i == 0) {
+      name = {w.begin(), w.end()};
+    } else {
+      type = {w.begin(), w.end()};
+    }
+    ++i;
+  }
+  return {name, type};
 }
 
 // Print related helping functions.

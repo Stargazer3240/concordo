@@ -19,9 +19,9 @@ using std::string;
  *  @see User; User::name_; User::address_; User::password_
  */
 struct Credentials {
-  string name;     /*!< An user name to be input from the system. */
   string address;  /*!< An user email address to be input from the system. */
   string password; /*!< An user password to be input from the system. */
+  string name;     /*!< An user name to be input from the system. */
 };
 
 /*! A class that represents an user in the Concordo app.

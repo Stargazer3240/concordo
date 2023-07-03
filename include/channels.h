@@ -18,6 +18,11 @@ using std::chrono::current_zone, std::chrono::system_clock,
     std::chrono::zoned_time;
 using duration = std::chrono::duration<long, std::nano>;
 
+struct ChannelDetails {
+  string name;
+  string type;
+};
+
 /*! A class that represents a message sent in a channel.
  *  @see Channel
  */

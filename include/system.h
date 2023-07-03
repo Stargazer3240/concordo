@@ -15,19 +15,14 @@
 
 namespace concordo {
 
-using std::pair, std::string, std::string_view, std::vector, std::tuple,
+using std::string, std::string_view, std::vector, std::tuple,
     std::unordered_set;
 using User = user::User;
 using Channel = channel::Channel;
 using Server = server::Server;
 using ServerDetails = server::ServerDetails;
-
-// Used to better represent the output of the credential parsing functions, as
-// they return tuple/pair of strings only and what credential is each can be
-// confusing.
-using Name = string;
-using EmailAddress = string;
-using Password = string;
+using Credentials = user::Credentials;
+using ChannelDetails = channel::ChannelDetails;
 
 /*! A struct that contains a line input to the CLI.
  *  @see System; System::run()
@@ -268,6 +263,8 @@ class System {
 
   void list_channels() const;
 
+  bool check_channel(const ChannelDetails& cd) const;
+
   void create_channel(string_view args);
 
   void enter_channel(string_view name);
@@ -331,11 +328,11 @@ bool check_password(const User& u, string_view p);
 
 // Parse the credentials of a new user, splitting the arguments of create-user
 // command.
-tuple<EmailAddress, Password, Name> parse_new_credentials(string_view cred);
+Credentials parse_new_credentials(string_view cred);
 
 // Parse the credentials of an existing user, splitting the arguments of login
 // command.
-pair<EmailAddress, Password> parse_credentials(string_view cred);
+Credentials parse_credentials(string_view cred);
 
 // Check if a server's name is equal to the parameter name.
 bool check_name(const Server& s, string_view name);
@@ -345,6 +342,13 @@ bool check_owner(const Server& s, const User& u);
 
 // Chech if an user is a member of said server.
 bool check_member(const Server& s, const User& u);
+
+void list_text_channels(const Server& server);
+void list_voice_channels(const Server& server);
+bool check_text_channel(const Channel& channel);
+bool check_voice_channel(const Channel& channel);
+
+ChannelDetails parse_channel(string_view args);
 
 // Some functions that print to the cout.
 void print_abscent(string_view name);

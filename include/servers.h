@@ -16,7 +16,7 @@ namespace server {
 
 using Channel = channel::Channel;
 using User = user::User;
-using std::string, std::string_view, std::vector;
+using std::shared_ptr, std::string, std::string_view, std::vector;
 
 /*! A struct that contains server details.
  *
@@ -61,6 +61,11 @@ class Server {
   /*! @see members_ids_ */
   [[nodiscard]] vector<int> getMembers() const { return members_ids_; }
 
+  vector<shared_ptr<Channel>> getChannels() { return channels_; }
+  [[nodiscard]] vector<shared_ptr<Channel>> getChannels() const {
+    return channels_;
+  }
+
   /*! @see description_ */
   void setDescription(string_view desc) { this->description_ = desc; }
 
@@ -77,7 +82,8 @@ class Server {
   string name_;    /*!< The name of the server. It's unique. */
   string description_; /*!< The description of the server. Can be changed. */
   string invite_code_; /*!< The invite code of the server. Can be empty. */
-  vector<Channel*> channels_; /*!< The list of channels from the server. */
+  vector<shared_ptr<Channel>>
+      channels_;            /*!< The list of channels from the server. */
   vector<int> members_ids_; /*!< The list of ids from the users that are member
                                of the server */
 };
