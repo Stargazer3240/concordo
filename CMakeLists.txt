@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT-0
 
-add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wshadow -g)
+add_compile_options(-Wall -Wextra -Wpedantic -pedantic -pedantic-errors -Werror -Wshadow -Wconversion -Wsign-conversion -g)
 
 cmake_minimum_required(VERSION 3.26)
 project(Concordo)
