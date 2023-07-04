@@ -118,7 +118,7 @@ void System::run_server_cmd(const CommandLine& cl) {
 
 void System::run_channel_cmd(const CommandLine& cl) {
   if (check_command(channel_commands_, cl.command)) {
-    if (cl.command == "leave-server") {
+    if (cl.command == "send-message") {
       send_message(cl.arguments);
     } else {
       list_messages();
@@ -162,9 +162,8 @@ auto System::find_user(string_view address) const {
 string System::get_user_name(int id) const { return find_user(id)->getName(); }
 
 void System::create_user(string_view args) {
-  const auto [a, p, n] = parse_new_credentials(args);
-  const Credentials c(n, a, p);
-  if (!check_user(a)) {
+  const Credentials c = parse_new_credentials(args);
+  if (!check_user(c.address)) {
     ++last_id_;
     users_list_.emplace_back(last_id_, c);
     cout << "User created\n";
@@ -313,6 +312,12 @@ bool System::check_channel(const ChannelDetails& cd) const {
       });
 }
 
+bool System::check_channel(string_view name) const {
+  return ranges::any_of(
+      current_server_.getChannels(),
+      [=](const shared_ptr<Channel>& c) { return c->getName() == name; });
+}
+
 auto System::find_channel(string_view name) {
   return find_if(
       current_server_.getChannels().begin(),
@@ -337,12 +342,15 @@ void System::list_channels() const {
 void System::create_channel(string_view args) {
   const ChannelDetails cd = parse_channel(args);
   if (!check_channel(cd)) {
-    if (cd.type == "Text") {
+    auto it{find_server(current_server_.getName())};
+    if (cd.type == "text") {
       auto c = make_shared<TextChannel>(cd.name);
-      current_server_.getChannels().push_back(c);
-    } else {
+      it->create_channel(c);
+      current_server_ = *it;
+    } else if (cd.type == "voice") {
       auto c = make_shared<VoiceChannel>(cd.name);
-      current_server_.getChannels().push_back(c);
+      it->create_channel(c);
+      current_server_ = *it;
     }
     cout << cd.type << " Channel '" << cd.name << "' created\n";
   } else {
@@ -351,21 +359,20 @@ void System::create_channel(string_view args) {
 }
 
 void System::enter_channel(string_view name) {
-  const ChannelDetails cd{string{name}, ""};
-  if (check_channel(cd)) {
-    auto it{find_channel(cd.name)};
+  if (check_channel(name)) {
+    auto it{find_channel(name)};
     current_state_ = kJoinedChannel;
-    current_channel_ = **it;
+    current_channel_ = *it;
+    cout << "Joined '" << name << "' channel\n";
   } else {
-    cout << "Channel '" << name << "'doesn't exist\n";
+    cout << "Channel '" << name << "' doesn't exist\n";
   }
 }
 
 void System::leave_channel() {
   if (current_state_ == kJoinedChannel) {
     cout << "Leaving channel\n";
-    const Channel c;
-    current_channel_ = c;
+    current_channel_ = nullptr;
     current_state_ = kJoinedServer;
   } else {
     cout << "You are not visualizing any channel\n";
@@ -373,28 +380,29 @@ void System::leave_channel() {
 }
 
 void System::send_message(string_view msg) {
-  auto it{find_channel(current_channel_.getName())};
-  if (check_text_channel(**it)) {
-    auto tc = dynamic_cast<TextChannel&>(**it);
-    tc.getMessages().emplace_back(logged_user_.getId(), msg);
-  } else if (check_voice_channel(**it)) {
-    auto vc = dynamic_cast<VoiceChannel&>(**it);
-    vc.getMessage() = {logged_user_.getId(), msg};
+  auto it{find_channel(current_channel_->getName())};
+  if (check_text_channel(*current_channel_)) {
+    auto tc = dynamic_cast<TextChannel&>(*current_channel_);
+    tc.send_message({logged_user_.getId(), msg});
+    **it = tc;
+  } else if (check_voice_channel(*current_channel_)) {
+    auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
+    vc.send_message({logged_user_.getId(), msg});
+    *current_channel_ = vc;
   }
 }
 
-void System::list_messages() const {
-  auto it{find_channel(current_channel_.getName())};
-  if (check_text_channel(**it)) {
-    auto tc = dynamic_cast<TextChannel&>(**it);
+void System::list_messages() {
+  if (check_text_channel(*current_channel_)) {
+    auto tc = dynamic_cast<TextChannel&>(*current_channel_);
     if (tc.getMessages().empty()) {
       cout << "No message to show\n";
     } else {
       ranges::for_each(tc.getMessages(),
                        [this](const Message& m) { print_message(m); });
     }
-  } else if (check_voice_channel(**it)) {
-    auto vc = dynamic_cast<VoiceChannel&>(**it);
+  } else if (check_voice_channel(*current_channel_)) {
+    auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
     if (vc.getMessage().getContent().empty()) {
       cout << "No message to show\n";
     } else {

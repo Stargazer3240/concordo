@@ -61,7 +61,7 @@ class Server {
   /*! @see members_ids_ */
   [[nodiscard]] vector<int> getMembers() const { return members_ids_; }
 
-  vector<shared_ptr<Channel>> getChannels() { return channels_; }
+  vector<shared_ptr<Channel>>& getChannels() { return channels_; }
   [[nodiscard]] vector<shared_ptr<Channel>> getChannels() const {
     return channels_;
   }
@@ -76,6 +76,7 @@ class Server {
    *  @see members_ids_
    */
   void add_member(const User& u) { members_ids_.push_back(u.getId()); }
+  void create_channel(const shared_ptr<Channel>& c) { channels_.push_back(c); }
 
  private:
   int owner_id_{}; /*!< The id of the user who created and owns the server. */
