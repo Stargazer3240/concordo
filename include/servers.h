@@ -76,7 +76,9 @@ class Server {
    *  @see members_ids_
    */
   void add_member(const User& u) { members_ids_.push_back(u.getId()); }
-  void create_channel(const shared_ptr<Channel>& c) { channels_.push_back(c); }
+  void create_channel(shared_ptr<Channel> c) {
+    channels_.push_back(std::move(c));
+  }
 
  private:
   int owner_id_{}; /*!< The id of the user who created and owns the server. */

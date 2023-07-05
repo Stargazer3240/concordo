@@ -380,16 +380,16 @@ void System::leave_channel() {
 }
 
 void System::send_message(string_view msg) {
-  auto it{find_channel(current_channel_->getName())};
   if (check_text_channel(*current_channel_)) {
     auto tc = dynamic_cast<TextChannel&>(*current_channel_);
     tc.send_message({logged_user_.getId(), msg});
-    **it = tc;
+    *current_channel_ = tc;
   } else if (check_voice_channel(*current_channel_)) {
     auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
     vc.send_message({logged_user_.getId(), msg});
     *current_channel_ = vc;
   }
+  cout << "Message sent\n";
 }
 
 void System::list_messages() {
