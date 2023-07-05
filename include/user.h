@@ -14,6 +14,7 @@ struct Credentials {
 
 class User {
  public:
+  User() = default;
   User(int id, const Credentials& c): id_{id}, email_{c.email}, password_{c.password}, name_{c.name}{}
 
  private:

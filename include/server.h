@@ -13,6 +13,9 @@ using std::string, std::vector, std::unique_ptr;
 using Channel = channel::Channel;
 
 class Server {
+ public:
+  Server() = default;
+
  private:
   int owner_id_{};
   string name_;
