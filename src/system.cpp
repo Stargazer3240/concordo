@@ -150,13 +150,13 @@ bool System::check_user(string_view address) const {
 }
 
 auto System::find_user(int id) const {
-  return find_if(users_list_.begin(), users_list_.end(),
-                 [=](const User& u) { return check_id(u, id); });
+  return ranges::find_if(users_list_,
+                         [=](const User& u) { return check_id(u, id); });
 }
 
-auto System::find_user(string_view address) const {
-  return find_if(users_list_.begin(), users_list_.end(),
-                 [=](const User& u) { return check_address(u, address); });
+auto System::find_user(string_view address) {
+  return ranges::find_if(
+      users_list_, [=](const User& u) { return check_address(u, address); });
 }
 
 string System::get_user_name(int id) const { return find_user(id)->getName(); }
@@ -175,7 +175,7 @@ void System::create_user(string_view args) {
 void System::user_login(string_view cred) {
   const string a{(parse_credentials(cred)).address};
   if (check_credentials(cred)) {
-    logged_user_ = *find_user(a);
+    current_user_ = &*find_user(a);
     current_state_ = kLogged_In;
     cout << "Logged-in as " << a << '\n';
   } else {
@@ -186,9 +186,9 @@ void System::user_login(string_view cred) {
 void System::disconnect() {
   if (current_state_ > kGuest) {
     current_state_ = kGuest;
-    cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
+    cout << "Disconnecting user " << current_user_->getEmail() << '\n';
     current_server_ = nullptr;
-    logged_user_ = User();
+    current_user_ = nullptr;
   } else {
     cout << "Not connected\n";
   }
@@ -207,8 +207,7 @@ auto System::find_server(string_view name) {
 
 void System::create_server(string_view name) {
   if (!check_server(name)) {
-    servers_list_.emplace_back(logged_user_.getId(), name);
-    servers_list_.back().add_member(logged_user_);
+    servers_list_.emplace_back(current_user_->getId(), name);
     cout << "Server created\n";
   } else {
     cout << "There is already a server with that name\n";
@@ -218,7 +217,7 @@ void System::create_server(string_view name) {
 void System::change_description(const ServerDetails& sd) {
   if (check_server(sd.name)) {
     auto it{find_server(sd.name)};
-    if (check_owner(*it, logged_user_)) {
+    if (check_owner(*it, *current_user_)) {
       it->setDescription(sd.description);
       print_info_changed(make_tuple("Description", sd.name, "changed"));
     } else {
@@ -232,7 +231,7 @@ void System::change_description(const ServerDetails& sd) {
 void System::change_invite(const ServerDetails& sd) {
   if (check_server(sd.name)) {
     auto it{find_server(sd.name)};
-    if (check_owner(*it, logged_user_)) {
+    if (check_owner(*it, *current_user_)) {
       it->setInvite(sd.invite_code);
       if (!sd.invite_code.empty()) {
         print_info_changed(make_tuple("Invite code", it->getName(), "changed"));
@@ -256,7 +255,7 @@ void System::list_servers() const {
 void System::remove_server(string_view name) {
   if (check_server(name)) {
     auto it{find_server(name)};
-    if (check_owner(*it, logged_user_)) {
+    if (check_owner(*it, *current_user_)) {
       servers_list_.erase(it);
       cout << "Server '" << name << "' was removed\n";
     } else {
@@ -270,12 +269,12 @@ void System::remove_server(string_view name) {
 void System::enter_server(const ServerDetails& sd) {
   if (check_server(sd.name)) {
     auto it{find_server(sd.name)};
-    if (it->getInvite().empty() || check_owner(*it, logged_user_) ||
+    if (it->getInvite().empty() || check_owner(*it, *current_user_) ||
         sd.invite_code == it->getInvite()) {
       current_state_ = kJoinedServer;
       cout << "Joined server with success\n";
-      if (!check_member(*it, logged_user_)) {
-        it->add_member(logged_user_);
+      if (!check_member(*it, *current_user_)) {
+        it->add_member(*current_user_);
       }
       current_server_ = &*it;
     } else {
@@ -342,15 +341,12 @@ void System::list_channels() const {
 void System::create_channel(string_view args) {
   const ChannelDetails cd = parse_channel(args);
   if (!check_channel(cd)) {
-    auto it{find_server(current_server_->getName())};
     if (cd.type == "text") {
       auto c = make_unique<TextChannel>(cd.name);
-      it->create_channel(std::move(c));
-      current_server_ = &*it;
+      current_server_->create_channel(std::move(c));
     } else if (cd.type == "voice") {
       auto c = make_unique<VoiceChannel>(cd.name);
-      it->create_channel(std::move(c));
-      current_server_ = &*it;
+      current_server_->create_channel(std::move(c));
     }
     cout << cd.type << " Channel '" << cd.name << "' created\n";
   } else {
@@ -382,11 +378,11 @@ void System::leave_channel() {
 void System::send_message(string_view msg) {
   if (check_text_channel(*current_channel_)) {
     auto tc = dynamic_cast<TextChannel&>(*current_channel_);
-    tc.send_message({logged_user_.getId(), msg});
+    tc.send_message({current_user_->getId(), msg});
     *current_channel_ = tc;
   } else if (check_voice_channel(*current_channel_)) {
     auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
-    vc.send_message({logged_user_.getId(), msg});
+    vc.send_message({current_user_->getId(), msg});
     *current_channel_ = vc;
   }
   cout << "Message sent\n";
