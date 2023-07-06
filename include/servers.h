@@ -16,7 +16,7 @@ namespace server {
 
 using Channel = channel::Channel;
 using User = user::User;
-using std::shared_ptr, std::string, std::string_view, std::vector;
+using std::unique_ptr, std::string, std::string_view, std::vector;
 
 /*! A struct that contains server details.
  *
@@ -61,8 +61,8 @@ class Server {
   /*! @see members_ids_ */
   [[nodiscard]] vector<int> getMembers() const { return members_ids_; }
 
-  vector<shared_ptr<Channel>>& getChannels() { return channels_; }
-  [[nodiscard]] vector<shared_ptr<Channel>> getChannels() const {
+  vector<unique_ptr<Channel>>& getChannels() { return channels_; }
+  [[nodiscard]] const vector<unique_ptr<Channel>>& getChannels() const {
     return channels_;
   }
 
@@ -76,7 +76,7 @@ class Server {
    *  @see members_ids_
    */
   void add_member(const User& u) { members_ids_.push_back(u.getId()); }
-  void create_channel(shared_ptr<Channel> c) {
+  void create_channel(unique_ptr<Channel> c) {
     channels_.push_back(std::move(c));
   }
 
@@ -85,7 +85,7 @@ class Server {
   string name_;    /*!< The name of the server. It's unique. */
   string description_; /*!< The description of the server. Can be changed. */
   string invite_code_; /*!< The invite code of the server. Can be empty. */
-  vector<shared_ptr<Channel>>
+  vector<unique_ptr<Channel>>
       channels_;            /*!< The list of channels from the server. */
   vector<int> members_ids_; /*!< The list of ids from the users that are member
                                of the server */

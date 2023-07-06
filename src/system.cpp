@@ -15,7 +15,7 @@
 
 namespace concordo {
 
-using std::array, std::cin, std::cout, std::getline, std::shared_ptr;
+using std::array, std::cin, std::cout, std::getline, std::unique_ptr;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using TextChannel = channel::TextChannel;
@@ -187,7 +187,7 @@ void System::disconnect() {
   if (current_state_ > kGuest) {
     current_state_ = kGuest;
     cout << "Disconnecting user " << logged_user_.getEmail() << '\n';
-    current_server_ = Server();
+    current_server_ = nullptr;
     logged_user_ = User();
   } else {
     cout << "Not connected\n";
@@ -277,7 +277,7 @@ void System::enter_server(const ServerDetails& sd) {
       if (!check_member(*it, logged_user_)) {
         it->add_member(logged_user_);
       }
-      current_server_ = *it;
+      current_server_ = &*it;
     } else {
       cout << "Server requires invite code\n";
     }
@@ -288,8 +288,8 @@ void System::enter_server(const ServerDetails& sd) {
 
 void System::leave_server() {
   if (current_state_ >= kJoinedServer) {
-    cout << "Leaving server '" << current_server_.getName() << "'\n";
-    current_server_ = Server();
+    cout << "Leaving server '" << current_server_->getName() << "'\n";
+    current_server_ = nullptr;
     current_state_ = kLogged_In;
   } else {
     cout << "You are not visualising any server\n";
@@ -297,14 +297,14 @@ void System::leave_server() {
 }
 
 void System::list_participants() const {
-  ranges::for_each(current_server_.getMembers(),
+  ranges::for_each(current_server_->getMembers(),
                    [this](int id) { cout << get_user_name(id) << '\n'; });
 }
 
 // Channel related commands.
 bool System::check_channel(const ChannelDetails& cd) const {
   return ranges::any_of(
-      current_server_.getChannels(), [=](const shared_ptr<Channel>& c) {
+      current_server_->getChannels(), [&](const unique_ptr<Channel>& c) {
         if (cd.type == "Text") {
           return c->getName() == cd.name && check_text_channel(*c);
         }
@@ -314,43 +314,43 @@ bool System::check_channel(const ChannelDetails& cd) const {
 
 bool System::check_channel(string_view name) const {
   return ranges::any_of(
-      current_server_.getChannels(),
-      [=](const shared_ptr<Channel>& c) { return c->getName() == name; });
+      current_server_->getChannels(),
+      [=](const unique_ptr<Channel>& c) { return c->getName() == name; });
 }
 
 auto System::find_channel(string_view name) {
   return find_if(
-      current_server_.getChannels().begin(),
-      current_server_.getChannels().end(),
-      [=](const shared_ptr<Channel>& c) { return c->getName() == name; });
+      current_server_->getChannels().begin(),
+      current_server_->getChannels().end(),
+      [=](const unique_ptr<Channel>& c) { return c->getName() == name; });
 }
 
 auto System::find_channel(string_view name) const {
   return find_if(
-      current_server_.getChannels().begin(),
-      current_server_.getChannels().end(),
-      [=](const shared_ptr<Channel>& c) { return c->getName() == name; });
+      current_server_->getChannels().begin(),
+      current_server_->getChannels().end(),
+      [=](const unique_ptr<Channel>& c) { return c->getName() == name; });
 }
 
 void System::list_channels() const {
   cout << "#Text Channels\n";
-  list_text_channels(current_server_);
+  list_text_channels(*current_server_);
   cout << "#Voice Channels\n";
-  list_voice_channels(current_server_);
+  list_voice_channels(*current_server_);
 }
 
 void System::create_channel(string_view args) {
   const ChannelDetails cd = parse_channel(args);
   if (!check_channel(cd)) {
-    auto it{find_server(current_server_.getName())};
+    auto it{find_server(current_server_->getName())};
     if (cd.type == "text") {
-      auto c = make_shared<TextChannel>(cd.name);
-      it->create_channel(c);
-      current_server_ = *it;
+      auto c = make_unique<TextChannel>(cd.name);
+      it->create_channel(std::move(c));
+      current_server_ = &*it;
     } else if (cd.type == "voice") {
-      auto c = make_shared<VoiceChannel>(cd.name);
-      it->create_channel(c);
-      current_server_ = *it;
+      auto c = make_unique<VoiceChannel>(cd.name);
+      it->create_channel(std::move(c));
+      current_server_ = &*it;
     }
     cout << cd.type << " Channel '" << cd.name << "' created\n";
   } else {
@@ -362,7 +362,7 @@ void System::enter_channel(string_view name) {
   if (check_channel(name)) {
     auto it{find_channel(name)};
     current_state_ = kJoinedChannel;
-    current_channel_ = *it;
+    current_channel_ = &(**it);
     cout << "Joined '" << name << "' channel\n";
   } else {
     cout << "Channel '" << name << "' doesn't exist\n";
@@ -539,7 +539,7 @@ bool check_member(const Server& s, const User& u) {
 
 // Channel related helping functions.
 void list_text_channels(const Server& server) {
-  for (const shared_ptr<Channel>& channel : server.getChannels()) {
+  for (const unique_ptr<Channel>& channel : server.getChannels()) {
     if (check_text_channel(*channel)) {
       cout << channel->getName() << '\n';
     }
@@ -547,7 +547,7 @@ void list_text_channels(const Server& server) {
 }
 
 void list_voice_channels(const Server& server) {
-  for (const shared_ptr<Channel>& channel : server.getChannels()) {
+  for (const unique_ptr<Channel>& channel : server.getChannels()) {
     if (check_voice_channel(*channel)) {
       cout << channel->getName() << '\n';
     }
