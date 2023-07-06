@@ -300,17 +300,11 @@ void System::list_participants() const {
 bool System::check_channel(const ChannelDetails& cd) const {
   return ranges::any_of(
       current_server_->getChannels(), [&](const unique_ptr<Channel>& c) {
-        if (cd.type == "Text") {
-          return c->getName() == cd.name && check_text_channel(*c);
+        if (cd.type == "text") {
+          return c->getName() == cd.name && check_channel_type<TextChannel>(*c);
         }
-        return c->getName() == cd.name && check_voice_channel(*c);
+        return c->getName() == cd.name && check_channel_type<VoiceChannel>(*c);
       });
-}
-
-bool System::check_channel(string_view name) const {
-  return ranges::any_of(
-      current_server_->getChannels(),
-      [=](const unique_ptr<Channel>& c) { return c->getName() == name; });
 }
 
 auto System::find_channel(string_view name) {
@@ -351,7 +345,9 @@ void System::create_channel(string_view args) {
 }
 
 void System::enter_channel(string_view name) {
-  if (check_channel(name)) {
+  if (check<const vector<unique_ptr<Channel>>&, string_view,
+            const unique_ptr<Channel>&>(current_server_->getChannels(), name,
+                                        check_channel_name)) {
     auto it{find_channel(name)};
     current_state_ = kJoinedChannel;
     current_channel_ = &(**it);
@@ -372,20 +368,18 @@ void System::leave_channel() {
 }
 
 void System::send_message(string_view msg) {
-  if (check_text_channel(*current_channel_)) {
-    auto tc = dynamic_cast<TextChannel&>(*current_channel_);
-    tc.send_message({current_user_->getId(), msg});
-    *current_channel_ = tc;
-  } else if (check_voice_channel(*current_channel_)) {
-    auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
-    vc.send_message({current_user_->getId(), msg});
-    *current_channel_ = vc;
+  if (check_channel_type<TextChannel>(*current_channel_)) {
+    auto* tc = dynamic_cast<TextChannel*>(current_channel_);
+    tc->send_message({current_user_->getId(), msg});
+  } else if (check_channel_type<VoiceChannel>(*current_channel_)) {
+    auto* vc = dynamic_cast<VoiceChannel*>(current_channel_);
+    vc->send_message({current_user_->getId(), msg});
   }
   cout << "Message sent\n";
 }
 
 void System::list_messages() {
-  if (check_text_channel(*current_channel_)) {
+  if (check_channel_type<TextChannel>(*current_channel_)) {
     auto tc = dynamic_cast<TextChannel&>(*current_channel_);
     if (tc.getMessages().empty()) {
       cout << "No message to show\n";
@@ -393,7 +387,7 @@ void System::list_messages() {
       ranges::for_each(tc.getMessages(),
                        [this](const Message& m) { print_message(m); });
     }
-  } else if (check_voice_channel(*current_channel_)) {
+  } else if (check_channel_type<VoiceChannel>(*current_channel_)) {
     auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
     if (vc.getMessage().getContent().empty()) {
       cout << "No message to show\n";
@@ -405,7 +399,7 @@ void System::list_messages() {
 
 void System::print_message(const Message& m) const {
   cout << get_user_name(m.getId()) << "<" << m.getDateTime()
-       << ">: " << m.getContent();
+       << ">: " << m.getContent() << '\n';
 }
 
 // System related helper functions.
@@ -530,9 +524,13 @@ bool check_member(const Server& s, const User& u) {
 }
 
 // Channel related helping functions.
+bool check_channel_name(const unique_ptr<Channel>& c, string_view name) {
+  return c->getName() == name;
+}
+
 void list_text_channels(const Server& server) {
   for (const unique_ptr<Channel>& channel : server.getChannels()) {
-    if (check_text_channel(*channel)) {
+    if (check_channel_type<TextChannel>(*channel)) {
       cout << channel->getName() << '\n';
     }
   }
@@ -540,18 +538,10 @@ void list_text_channels(const Server& server) {
 
 void list_voice_channels(const Server& server) {
   for (const unique_ptr<Channel>& channel : server.getChannels()) {
-    if (check_voice_channel(*channel)) {
+    if (check_channel_type<VoiceChannel>(*channel)) {
       cout << channel->getName() << '\n';
     }
   }
-}
-
-bool check_text_channel(const Channel& channel) {
-  return typeid(channel).name() == typeid(TextChannel).name();
-}
-
-bool check_voice_channel(const Channel& channel) {
-  return typeid(channel).name() == typeid(VoiceChannel).name();
 }
 
 ChannelDetails parse_channel(string_view args) {

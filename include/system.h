@@ -6,6 +6,7 @@
 #define SYSTEM_H
 
 #include <algorithm>
+#include <memory>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
@@ -17,7 +18,7 @@
 namespace concordo {
 
 using std::string, std::string_view, std::vector, std::tuple,
-    std::unordered_set;
+    std::unordered_set, std::unique_ptr;
 using User = user::User;
 using Message = channel::Message;
 using Channel = channel::Channel;
@@ -254,8 +255,6 @@ class System {
 
   bool check_channel(const ChannelDetails& cd) const;
 
-  bool check_channel(string_view name) const;
-
   auto find_channel(string_view name);
 
   auto find_channel(string_view name) const;
@@ -342,10 +341,14 @@ bool check_owner(const Server& s, const User& u);
 // Chech if an user is a member of said server.
 bool check_member(const Server& s, const User& u);
 
+bool check_channel_name(const unique_ptr<Channel>& c, string_view name);
 void list_text_channels(const Server& server);
 void list_voice_channels(const Server& server);
-bool check_text_channel(const Channel& channel);
-bool check_voice_channel(const Channel& channel);
+
+template <typename ChildType>
+bool check_channel_type(const Channel& channel) {
+  return typeid(channel).name() == typeid(ChildType).name();
+}
 
 ChannelDetails parse_channel(string_view args);
 
