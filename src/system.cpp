@@ -144,11 +144,6 @@ bool System::check_credentials(string_view cred) const {
   });
 }
 
-bool System::check_user(string_view address) const {
-  return ranges::any_of(
-      users_list_, [=](const User& u) { return check_address(u, address); });
-}
-
 auto System::find_user(int id) const {
   return ranges::find_if(users_list_,
                          [=](const User& u) { return check_id(u, id); });
@@ -163,7 +158,8 @@ string System::get_user_name(int id) const { return find_user(id)->getName(); }
 
 void System::create_user(string_view args) {
   const Credentials c = parse_new_credentials(args);
-  if (!check_user(c.address)) {
+  if (!check<vector<User>, string_view, const User&>(users_list_, c.address,
+                                                     check_address)) {
     ++last_id_;
     users_list_.emplace_back(last_id_, c);
     cout << "User created\n";
@@ -551,11 +547,11 @@ void list_voice_channels(const Server& server) {
 }
 
 bool check_text_channel(const Channel& channel) {
-  return typeid(channel).name() == typeid(channel::TextChannel).name();
+  return typeid(channel).name() == typeid(TextChannel).name();
 }
 
 bool check_voice_channel(const Channel& channel) {
-  return typeid(channel).name() == typeid(channel::VoiceChannel).name();
+  return typeid(channel).name() == typeid(VoiceChannel).name();
 }
 
 ChannelDetails parse_channel(string_view args) {
