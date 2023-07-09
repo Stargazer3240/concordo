@@ -5,11 +5,13 @@
 #include "system.h"
 
 #include <algorithm>
+#include <array>
+#include <functional>
 #include <iostream>
 #include <ranges>
 #include <string>
-#include <type_traits>
 #include <unordered_set>
+#include <utility>
 
 #include "channels.h"
 

@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include <iostream>
-
 #include "system.h"
 
 int main() {

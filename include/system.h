@@ -6,9 +6,15 @@
 #define SYSTEM_H
 
 #include <algorithm>
+#include <concepts>
 #include <memory>
+#include <ranges>
+#include <string>
 #include <string_view>
+#include <tuple>
+#include <typeinfo>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include "channels.h"
