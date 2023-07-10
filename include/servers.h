@@ -14,10 +14,8 @@
 #include "channels.h"
 #include "users.h"
 
-namespace server {
+namespace concordo {
 
-using Channel = channel::Channel;
-using User = user::User;
 using std::unique_ptr, std::string, std::string_view, std::vector;
 
 /*! A struct that contains server details.
@@ -93,6 +91,6 @@ class Server {
                                of the server */
 };
 
-}  // namespace server
+}  // namespace concordo
 
 #endif  // SERVERS_H

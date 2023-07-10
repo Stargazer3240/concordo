@@ -20,8 +20,6 @@ namespace concordo {
 using std::array, std::cin, std::cout, std::getline, std::unique_ptr;
 namespace ranges = std::ranges;
 namespace views = std::views;
-using TextChannel = channel::TextChannel;
-using VoiceChannel = channel::VoiceChannel;
 using enum System::SystemState;
 
 // Main system loop.
@@ -140,7 +138,7 @@ bool System::check_all_commands(string_view cmd) {
 
 // User related commands.
 bool System::check_credentials(string_view cred) const {
-  const Credentials c = parse_credentials(cred);
+  const UserCredentials c = parse_credentials(cred);
   return ranges::any_of(users_list_, [&](const User& u) {
     return check_address(u, c.address) && check_password(u, c.password);
   });
@@ -159,9 +157,9 @@ auto System::find_user(string_view address) {
 string System::get_user_name(int id) const { return find_user(id)->getName(); }
 
 void System::create_user(string_view args) {
-  const Credentials c = parse_new_credentials(args);
-  if (!check<vector<User>, string_view, const User&>(users_list_, c.address,
-                                                     check_address)) {
+  const UserCredentials c = parse_new_credentials(args);
+  if (!any_of<vector<User>, string_view>(users_list_, c.address,
+                                         check_address)) {
     ++last_id_;
     users_list_.emplace_back(last_id_, c);
     cout << "User created\n";
@@ -347,9 +345,8 @@ void System::create_channel(string_view args) {
 }
 
 void System::enter_channel(string_view name) {
-  if (check<const vector<unique_ptr<Channel>>&, string_view,
-            const unique_ptr<Channel>&>(current_server_->getChannels(), name,
-                                        check_channel_name)) {
+  if (any_of<const vector<unique_ptr<Channel>>&, string_view>(
+          current_server_->getChannels(), name, check_channel_name)) {
     auto it{find_channel(name)};
     current_state_ = kJoinedChannel;
     current_channel_ = &(**it);
@@ -474,7 +471,7 @@ bool check_password(const User& u, string_view p) {
   return u.getPassword() == p;
 }
 
-Credentials parse_new_credentials(string_view cred) {
+UserCredentials parse_new_credentials(string_view cred) {
   string addr;
   string pass;
   string name;
@@ -497,7 +494,7 @@ Credentials parse_new_credentials(string_view cred) {
   return {addr, pass, name};
 }
 
-Credentials parse_credentials(string_view cred) {
+UserCredentials parse_credentials(string_view cred) {
   string addr;
   string pass;
   for (int i{0}; const auto w : views::split(cred, ' ')) {

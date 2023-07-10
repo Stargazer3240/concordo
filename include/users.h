@@ -6,9 +6,8 @@
 #define USERS_H
 
 #include <string>
-#include <string_view>
 
-namespace user {
+namespace concordo {
 
 using std::string;
 
@@ -18,7 +17,7 @@ using std::string;
  *  class.
  *  @see User; User::name_; User::address_; User::password_
  */
-struct Credentials {
+struct UserCredentials {
   string address;  /*!< An user email address to be input from the system. */
   string password; /*!< An user password to be input from the system. */
   string name;     /*!< An user name to be input from the system. */
@@ -41,7 +40,7 @@ class User {
    *  @see concordo::System::create_user()
    *  @see Credentials
    */
-  User(int id, const Credentials& c)
+  User(int id, const UserCredentials& c)
       : id_{id}, name_{c.name}, address_{c.address}, password_{c.password} {}
 
   /*! @see id_ */
@@ -63,6 +62,6 @@ class User {
   string password_; /*!< The user's password. */
 };
 
-}  // namespace user
+}  // namespace concordo
 
 #endif  // USERS_H

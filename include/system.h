@@ -25,13 +25,6 @@ namespace concordo {
 
 using std::string, std::string_view, std::vector, std::tuple,
     std::unordered_set, std::unique_ptr;
-using User = user::User;
-using Message = channel::Message;
-using Channel = channel::Channel;
-using Server = server::Server;
-using ServerDetails = server::ServerDetails;
-using Credentials = user::Credentials;
-using ChannelDetails = channel::ChannelDetails;
 
 /*! A struct that contains a line input to the CLI.
  *  @see System; System::run()
@@ -332,11 +325,11 @@ bool check_password(const User& u, string_view p);
 
 // Parse the credentials of a new user, splitting the arguments of create-user
 // command.
-Credentials parse_new_credentials(string_view cred);
+UserCredentials parse_new_credentials(string_view cred);
 
 // Parse the credentials of an existing user, splitting the arguments of login
 // command.
-Credentials parse_credentials(string_view cred);
+UserCredentials parse_credentials(string_view cred);
 
 // Check if a server's name is equal to the parameter name.
 bool check_name(const Server& s, string_view name);
@@ -363,18 +356,17 @@ void print_abscent(string_view name);
 void print_no_permission(string_view sv);
 void print_info_changed(tuple<string_view, string_view, string_view> info);
 
-template <typename Container, typename Parameter, typename Object,
-          typename Predicate>
-bool check(Container c, Parameter p, Predicate pred) {
+template <typename Container, typename Parameter, typename Predicate>
+bool any_of(Container c, Parameter p, Predicate pred) {
   namespace ranges = std::ranges;
-  return ranges::any_of(c, [p, pred](Object o) { return pred(o, p); });
+  return ranges::any_of(c, [pred, p](const auto& obj) { return pred(obj, p); });
 }
 
-template <typename Container, typename Parameter, typename Object,
-          typename Predicate>
-auto find(Container c, Parameter p, Predicate pred) {
+template <typename Container, typename Parameter, typename Predicate>
+auto find_if(Container c, Parameter p, Predicate pred) {
   namespace ranges = std::ranges;
-  return ranges::find_if(c, [p, pred](Object o) { return pred(o, p); });
+  return ranges::find_if(c,
+                         [p, pred](const auto& obj) { return pred(obj, p); });
 }
 
 }  // namespace concordo

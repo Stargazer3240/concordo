@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace channel {
+namespace concordo {
 
 using std::string, std::string_view, std::vector;
 using std::chrono::system_clock;
@@ -133,6 +133,6 @@ class VoiceChannel : public Channel {
   Message last_message_; /*!< The last "voice" message sent in the channel. */
 };
 
-}  // namespace channel
+}  // namespace concordo
 
 #endif  // CHANNELS_H
