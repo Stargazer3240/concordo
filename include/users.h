@@ -5,11 +5,15 @@
 #ifndef USERS_H
 #define USERS_H
 
+#include <ostream>
 #include <string>
+#include <string_view>
+
+#include "channels.h"
 
 namespace concordo {
 
-using std::string;
+using std::string, std::string_view, std::ostream;
 
 /*! A struct that contains user credentials.
  *
@@ -45,15 +49,24 @@ class User {
 
   /*! @see id_ */
   [[nodiscard]] int getId() const { return id_; }
-
-  /*! @see name_ */
   [[nodiscard]] string getName() const { return name_; }
-
-  /*! @see address_ */
   [[nodiscard]] string getEmail() const { return address_; }
 
-  /*! @see password_ */
-  [[nodiscard]] string getPassword() const { return password_; }
+  [[nodiscard]] bool check_id(int id) const { return id_ == id; }
+
+  [[nodiscard]] bool check_address(string_view a) const {
+    return address_ == a;
+  }
+
+  [[nodiscard]] bool check_password(string_view p) const {
+    return password_ == p;
+  }
+
+  void send_message(Channel* c, string_view msg) const {
+    c->send_message({id_, msg});
+  }
+
+  friend ostream& operator<<(ostream& out, const User& u);
 
  private:
   int id_{};        /*!< The user's unique id created by the system. */
@@ -61,6 +74,8 @@ class User {
   string address_;  /*!< The user's email address. Has to be unique. */
   string password_; /*!< The user's password. */
 };
+
+ostream& operator<<(ostream& out, const User& u);
 
 }  // namespace concordo
 

@@ -92,7 +92,7 @@ void System::run_logged_cmd(const CommandLine& cl) {
       enter_server(parse_details(cl.arguments, 2));
     }
   } else {
-    cout << "You can't do that right now\n";
+    print_unable();
   }
 }
 
@@ -112,7 +112,7 @@ void System::run_server_cmd(const CommandLine& cl) {
       leave_channel();
     }
   } else {
-    cout << "You can't do that right now\n";
+    print_unable();
   }
 }
 
@@ -124,11 +124,11 @@ void System::run_channel_cmd(const CommandLine& cl) {
       list_messages();
     }
   } else {
-    cout << "You can't do that right now\n";
+    print_unable();
   }
 }
 
-bool System::check_all_commands(string_view cmd) {
+bool System::check_all_commands(string_view cmd) const {
   const array<unordered_set<string>, 4> all_cmds{
       guest_commands_, logged_commands_, server_commands_, channel_commands_};
   return ranges::any_of(all_cmds, [=](const unordered_set<string>& s) {
@@ -181,7 +181,7 @@ void System::user_login(string_view cred) {
 void System::disconnect() {
   if (current_state_ > kGuest) {
     current_state_ = kGuest;
-    cout << "Disconnecting user " << current_user_->getEmail() << '\n';
+    cout << "Disconnecting user " << *current_user_ << '\n';
     current_server_ = nullptr;
     current_user_ = nullptr;
   } else {
@@ -207,8 +207,8 @@ void System::create_server(string_view name) {
 void System::change_description(const ServerDetails& sd) {
   if (any_of<const vector<Server>&>(servers_list_, sd.name, check_name)) {
     auto it{find_server(sd.name)};
-    if (check_owner(*it, *current_user_)) {
-      it->setDescription(sd.description);
+    if (it->check_owner(*current_user_)) {
+      it->change_description(sd.description);
       print_info_changed(make_tuple("Description", sd.name, "changed"));
     } else {
       print_no_permission("description");
@@ -221,12 +221,12 @@ void System::change_description(const ServerDetails& sd) {
 void System::change_invite(const ServerDetails& sd) {
   if (any_of<const vector<Server>&>(servers_list_, sd.name, check_name)) {
     auto it{find_server(sd.name)};
-    if (check_owner(*it, *current_user_)) {
-      it->setInvite(sd.invite_code);
+    if (it->check_owner(*current_user_)) {
+      it->change_invite(sd.invite_code);
       if (!sd.invite_code.empty()) {
-        print_info_changed(make_tuple("Invite code", it->getName(), "changed"));
+        print_info_changed("Invite code", *it, "changed");
       } else {
-        print_info_changed(make_tuple("Invite code", it->getName(), "removed"));
+        print_info_changed("Invite code", *it, "removed");
       }
     } else {
       print_no_permission("invite code");
@@ -238,14 +238,14 @@ void System::change_invite(const ServerDetails& sd) {
 
 void System::list_servers() const {
   for (const auto& server : servers_list_) {
-    cout << server.getName() << '\n';
+    server.print();
   }
 }
 
 void System::remove_server(string_view name) {
   if (any_of<const vector<Server>&>(servers_list_, name, check_name)) {
     auto it{find_server(name)};
-    if (check_owner(*it, *current_user_)) {
+    if (it->check_owner(*current_user_)) {
       servers_list_.erase(it);
       cout << "Server '" << name << "' was removed\n";
     } else {
@@ -259,11 +259,11 @@ void System::remove_server(string_view name) {
 void System::enter_server(const ServerDetails& sd) {
   if (any_of<const vector<Server>&>(servers_list_, sd.name, check_name)) {
     auto it{find_server(sd.name)};
-    if (it->getInvite().empty() || check_owner(*it, *current_user_) ||
-        sd.invite_code == it->getInvite()) {
+    if (!it->has_invite() || it->check_owner(*current_user_) ||
+        it->check_invite(sd.invite_code)) {
       current_state_ = kJoinedServer;
       cout << "Joined server with success\n";
-      if (!check_member(*it, *current_user_)) {
+      if (!it->check_member(*current_user_)) {
         it->add_member(*current_user_);
       }
       current_server_ = &*it;
@@ -277,7 +277,7 @@ void System::enter_server(const ServerDetails& sd) {
 
 void System::leave_server() {
   if (current_state_ >= kJoinedServer) {
-    cout << "Leaving server '" << current_server_->getName() << "'\n";
+    cout << "Leaving server '" << *current_server_ << "'\n";
     current_server_ = nullptr;
     current_state_ = kLogged_In;
   } else {
@@ -292,31 +292,25 @@ void System::list_participants() const {
 
 // Channel related commands.
 bool System::check_channel(const ChannelDetails& cd) const {
-  return ranges::any_of(
-      current_server_->getChannels(), [&](const unique_ptr<Channel>& c) {
-        if (cd.type == "text") {
-          return c->getName() == cd.name && check_channel_type<TextChannel>(*c);
-        }
-        return c->getName() == cd.name && check_channel_type<VoiceChannel>(*c);
-      });
+  return current_server_->check_channel(cd);
 }
 
 constexpr auto System::find_channel(string_view name) {
   return find_if(
       current_server_->getChannels().begin(),
       current_server_->getChannels().end(),
-      [=](const unique_ptr<Channel>& c) { return c->getName() == name; });
+      [=](const unique_ptr<Channel>& c) { return c->check_name(name); });
 }
 
 void System::list_channels() const {
   cout << "#Text Channels\n";
-  list_text_channels(*current_server_);
+  current_server_->list_text_channels();
   cout << "#Voice Channels\n";
-  list_voice_channels(*current_server_);
+  current_server_->list_voice_channels();
 }
 
 void System::create_channel(string_view args) {
-  const ChannelDetails cd = parse_channel(args);
+  const ChannelDetails cd = parse_details(args);
   if (!check_channel(cd)) {
     if (cd.type == "text") {
       auto c = make_unique<TextChannel>(cd.name);
@@ -325,15 +319,14 @@ void System::create_channel(string_view args) {
       auto c = make_unique<VoiceChannel>(cd.name);
       current_server_->create_channel(std::move(c));
     }
-    cout << cd.type << " Channel '" << cd.name << "' created\n";
+    print_channel_created(cd);
   } else {
-    cout << cd.type << " Channel '" << cd.name << "' already exists\n";
+    print_channel_exists(cd);
   }
 }
 
 void System::enter_channel(string_view name) {
-  if (any_of<const vector<unique_ptr<Channel>>&, string_view>(
-          current_server_->getChannels(), name, check_channel_name)) {
+  if (current_server_->any_of(name)) {
     auto it{find_channel(name)};
     current_state_ = kJoinedChannel;
     current_channel_ = &(**it);
@@ -356,10 +349,10 @@ void System::leave_channel() {
 void System::send_message(string_view msg) {
   if (check_channel_type<TextChannel>(*current_channel_)) {
     auto* tc = dynamic_cast<TextChannel*>(current_channel_);
-    tc->send_message({current_user_->getId(), msg});
+    current_user_->send_message(tc, msg);
   } else if (check_channel_type<VoiceChannel>(*current_channel_)) {
     auto* vc = dynamic_cast<VoiceChannel*>(current_channel_);
-    vc->send_message({current_user_->getId(), msg});
+    current_user_->send_message(vc, msg);
   }
   cout << "Message sent\n";
 }
@@ -367,7 +360,7 @@ void System::send_message(string_view msg) {
 void System::list_messages() {
   if (check_channel_type<TextChannel>(*current_channel_)) {
     auto tc = dynamic_cast<TextChannel&>(*current_channel_);
-    if (tc.getMessages().empty()) {
+    if (tc.empty()) {
       cout << "No message to show\n";
     } else {
       ranges::for_each(tc.getMessages(),
@@ -375,7 +368,7 @@ void System::list_messages() {
     }
   } else if (check_channel_type<VoiceChannel>(*current_channel_)) {
     auto vc = dynamic_cast<VoiceChannel&>(*current_channel_);
-    if (vc.getMessage().getContent().empty()) {
+    if (vc.empty()) {
       cout << "No message to show\n";
     } else {
       print_message(vc.getMessage());
@@ -450,12 +443,12 @@ ServerDetails parse_details(string_view args, int cmd) {
 }
 
 // User related helping functions.
-bool check_id(const User& u, int id) { return u.getId() == id; }
+bool check_id(const User& u, int id) { return u.check_id(id); }
 
-bool check_address(const User& u, string_view a) { return u.getEmail() == a; }
+bool check_address(const User& u, string_view a) { return u.check_address(a); }
 
 bool check_password(const User& u, string_view p) {
-  return u.getPassword() == p;
+  return u.check_password(p);
 }
 
 UserCredentials parse_new_credentials(string_view cred) {
@@ -497,40 +490,15 @@ UserCredentials parse_credentials(string_view cred) {
 
 // Server related helping functions.
 bool check_name(const Server& s, string_view name) {
-  return s.getName() == name;
-}
-
-bool check_owner(const Server& s, const User& u) {
-  return s.getOwner() == u.getId();
-}
-
-bool check_member(const Server& s, const User& u) {
-  return ranges::any_of(s.getMembers(),
-                        [&](int id) { return id == u.getId(); });
+  return s.check_name(name);
 }
 
 // Channel related helping functions.
 bool check_channel_name(const unique_ptr<Channel>& c, string_view name) {
-  return c->getName() == name;
+  return c->check_name(name);
 }
 
-void list_text_channels(const Server& server) {
-  for (const unique_ptr<Channel>& channel : server.getChannels()) {
-    if (check_channel_type<TextChannel>(*channel)) {
-      cout << channel->getName() << '\n';
-    }
-  }
-}
-
-void list_voice_channels(const Server& server) {
-  for (const unique_ptr<Channel>& channel : server.getChannels()) {
-    if (check_channel_type<VoiceChannel>(*channel)) {
-      cout << channel->getName() << '\n';
-    }
-  }
-}
-
-ChannelDetails parse_channel(string_view args) {
+ChannelDetails parse_details(string_view args) {
   string name;
   string type;
   for (int i{0}; const auto w : views::split(args, ' ')) {
@@ -556,6 +524,35 @@ void print_no_permission(string_view sv) {
 void print_info_changed(tuple<string_view, string_view, string_view> info) {
   cout << get<0>(info) << " of server '" << get<1>(info) << "' was "
        << get<2>(info) << "!\n";
+}
+
+void print_info_changed(string_view wc1, const Server& s, string_view wc2) {
+  cout << wc1 << " of server '" << s << "' was " << wc2 << "!\n";
+}
+
+void print_unable() { cout << "You can't do that right now\n"; }
+void print_channel_created(const ChannelDetails& cd) {
+  if (cd.type == "text") {
+    print_channel_created("Text", cd.name);
+  } else if (cd.type == "voice") {
+    print_channel_created("Voice", cd.name);
+  }
+}
+
+void print_channel_created(string_view type, string_view name) {
+  cout << type << " Channel '" << name << "' created\n";
+}
+
+void print_channel_exists(const ChannelDetails& cd) {
+  if (cd.type == "text") {
+    print_channel_exists("Text", cd.name);
+  } else if (cd.type == "voice") {
+    print_channel_exists("Voice", cd.name);
+  }
+}
+
+void print_channel_exists(string_view type, string_view name) {
+  cout << type << " Channel '" << name << "' already exists\n";
 }
 
 }  // namespace concordo

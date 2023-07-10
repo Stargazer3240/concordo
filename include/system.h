@@ -12,7 +12,6 @@
 #include <string>
 #include <string_view>
 #include <tuple>
-#include <typeinfo>
 #include <unordered_set>
 #include <variant>
 #include <vector>
@@ -88,7 +87,7 @@ class System {
    *  @return True if the command is valid.
    *  @see guest_commands_; logged_commands_; server_commands_
    */
-  bool check_all_commands(string_view cmd);
+  bool check_all_commands(string_view cmd) const;
 
   /*! Checks if the input credentials are valid.
    *
@@ -304,38 +303,29 @@ bool check_address(const User& u, string_view a);
 // Check if the user's password is equal to the parameter password.
 bool check_password(const User& u, string_view p);
 
-// Parse the credentials of a new user, splitting the arguments of create-user
-// command.
+// Parse the credentials of a new user.
 UserCredentials parse_new_credentials(string_view cred);
 
-// Parse the credentials of an existing user, splitting the arguments of login
-// command.
+// Parse the credentials of an existing user.
 UserCredentials parse_credentials(string_view cred);
 
 // Check if a server's name is equal to the parameter name.
 bool check_name(const Server& s, string_view name);
 
-// Check if a server's owner id is equal to the id of an user.
-bool check_owner(const Server& s, const User& u);
-
-// Chech if an user is a member of said server.
-bool check_member(const Server& s, const User& u);
-
 bool check_channel_name(const unique_ptr<Channel>& c, string_view name);
-void list_text_channels(const Server& server);
-void list_voice_channels(const Server& server);
 
-template <typename ChildType>
-bool check_channel_type(const Channel& channel) {
-  return typeid(channel).name() == typeid(ChildType).name();
-}
-
-ChannelDetails parse_channel(string_view args);
+ChannelDetails parse_details(string_view args);
 
 // Some functions that print to the cout.
 void print_abscent(string_view name);
 void print_no_permission(string_view sv);
 void print_info_changed(tuple<string_view, string_view, string_view> info);
+void print_info_changed(string_view wc1, const Server& s, string_view wc2);
+void print_unable();
+void print_channel_created(const ChannelDetails& cd);
+void print_channel_created(string_view type, string_view name);
+void print_channel_exists(const ChannelDetails& cd);
+void print_channel_exists(string_view type, string_view name);
 
 template <typename Container, typename Parameter, typename Predicate>
 constexpr bool any_of(Container c, Parameter p, Predicate pred) {

@@ -5,9 +5,14 @@
 #ifndef SERVERS_H
 #define SERVERS_H
 
+#include <algorithm>
+#include <concepts>
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -16,7 +21,9 @@
 
 namespace concordo {
 
-using std::unique_ptr, std::string, std::string_view, std::vector;
+using std::unique_ptr, std::string, std::string_view, std::vector, std::cout,
+    std::ostream;
+namespace ranges = std::ranges;
 
 /*! A struct that contains server details.
  *
@@ -49,28 +56,14 @@ class Server {
    */
   explicit Server(int id, string_view n) : owner_id_{id}, name_{n} {}
 
-  /*! @see owner_id_ */
-  [[nodiscard]] int getOwner() const { return owner_id_; }
-
-  /*! @see name_ */
   [[nodiscard]] string getName() const { return name_; }
 
-  /*! @see invite_code_ */
-  [[nodiscard]] string getInvite() const { return invite_code_; }
-
-  /*! @see members_ids_ */
   [[nodiscard]] vector<int> getMembers() const { return members_ids_; }
 
-  vector<unique_ptr<Channel>>& getChannels() { return channels_; }
-  [[nodiscard]] const vector<unique_ptr<Channel>>& getChannels() const {
-    return channels_;
-  }
+  constexpr vector<unique_ptr<Channel>>& getChannels() { return channels_; }
 
-  /*! @see description_ */
-  void setDescription(string_view desc) { this->description_ = desc; }
-
-  /*! @see invite_code_ */
-  void setInvite(string_view code) { this->invite_code_ = code; }
+  void change_description(string_view desc) { this->description_ = desc; }
+  void change_invite(string_view code) { this->invite_code_ = code; }
 
   /*! A method that adds an user to the member list.
    *  @see members_ids_
@@ -79,6 +72,41 @@ class Server {
   void create_channel(unique_ptr<Channel> c) {
     channels_.push_back(std::move(c));
   }
+
+  [[nodiscard]] bool check_name(string_view name) const {
+    return this->name_ == name;
+  }
+
+  [[nodiscard]] bool check_owner(const User& u) const {
+    return u.check_id(owner_id_);
+  }
+
+  [[nodiscard]] bool check_invite(const string& ic) const {
+    return invite_code_ == ic;
+  }
+
+  [[nodiscard]] bool check_member(const User& u) const {
+    return ranges::any_of(members_ids_, [&](int id) { return u.check_id(id); });
+  }
+
+  [[nodiscard]] bool check_channel(const ChannelDetails& cd) const;
+  constexpr auto find_channel(string_view name);
+
+  void print() const { cout << name_ << '\n'; }
+
+  [[nodiscard]] bool has_invite() const { return !invite_code_.empty(); }
+
+  void list_text_channels() const;
+
+  void list_voice_channels() const;
+
+  constexpr bool any_of(string_view name) {
+    namespace ranges = std::ranges;
+    return ranges::any_of(channels_,
+                          [=](const auto& c) { return c->check_name(name); });
+  }
+
+  friend ostream& operator<<(ostream& out, const Server& s);
 
  private:
   int owner_id_{}; /*!< The id of the user who created and owns the server. */
@@ -90,6 +118,11 @@ class Server {
   vector<int> members_ids_; /*!< The list of ids from the users that are member
                                of the server */
 };
+
+template <typename ChildType>
+bool check_channel_type(const Channel& channel) {
+  return typeid(channel).name() == typeid(ChildType).name();
+}
 
 }  // namespace concordo
 
