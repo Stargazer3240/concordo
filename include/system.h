@@ -55,12 +55,6 @@ class System {
                       server. */
   };
 
-  /*! @see current_state_ */
-  [[nodiscard]] SystemState getState() const { return current_state_; }
-
-  /*! @see users_list_ */
-  [[nodiscard]] vector<User> getUserList() const { return users_list_; }
-
   /*! Starts the main Concordo loop. */
   void init();
 
@@ -142,7 +136,7 @@ class System {
 
   /*! Creates an user in the system.
    *  @param args the arguments of the create-user command.
-   *  @see check_user(); users_list_; last_id_
+   *  @see users_list_; last_id_
    *  @see user::User; user::User::id_; last_id_; user::Credentials
    */
   void create_user(string_view args);
@@ -160,17 +154,6 @@ class System {
    */
   void disconnect();
 
-  /*! Check if the server exists in the system.
-   *
-   *  The check is valid if there is a server in the system with the same name
-   *  as the input name.
-   *  @param name the name to be checked
-   *  @see servers_list_
-   *  @see server::Server; server::Server::name_
-   *  @return True if the name was used by any registered server
-   */
-  [[nodiscard]] bool check_server(string_view name) const;
-
   /*! Find the position of an server in the system.
    *
    *  Goes through the entire server list checking if a server has the same
@@ -186,7 +169,7 @@ class System {
 
   /*! Creates a server in the system.
    *  @param name the name of the server to be created.
-   *  @see check_server(); find_server(); servers_list_
+   *  @see find_server(); servers_list_
    *  @see server::Server::add_member()
    */
   void create_server(string_view name);
@@ -196,7 +179,7 @@ class System {
    *  To change the description of a server, you have to be its owner.
    *  @param sd the details of the server to be changed, including its name and
    *  the new description.
-   *  @see check_server(); find_server();
+   *  @see find_server();
    *  @see server::Server::setDescription(); server::ServerDetails
    */
   void change_description(const ServerDetails& sd);
@@ -208,7 +191,7 @@ class System {
    *  removed.
    *  @param sd the details of the server to be changed, including its name and
    *  the new invite code.
-   *  @see check_server(); find_server();
+   *  @see find_server();
    *  @see server::Server::setInvite(); server::ServerDetails
    */
   void change_invite(const ServerDetails& sd);
@@ -222,7 +205,7 @@ class System {
   /*! Removes a server from the system.
    *
    *  To remove a server, you have to be its owner.
-   *  @see check_server(); find_server(); servers_list_
+   *  @see find_server(); servers_list_
    *  @see server::Server
    */
   void remove_server(string_view name);
@@ -254,9 +237,7 @@ class System {
 
   bool check_channel(const ChannelDetails& cd) const;
 
-  auto find_channel(string_view name);
-
-  auto find_channel(string_view name) const;
+  constexpr auto find_channel(string_view name);
 
   void list_channels() const;
 
@@ -357,16 +338,9 @@ void print_no_permission(string_view sv);
 void print_info_changed(tuple<string_view, string_view, string_view> info);
 
 template <typename Container, typename Parameter, typename Predicate>
-bool any_of(Container c, Parameter p, Predicate pred) {
+constexpr bool any_of(Container c, Parameter p, Predicate pred) {
   namespace ranges = std::ranges;
   return ranges::any_of(c, [pred, p](const auto& obj) { return pred(obj, p); });
-}
-
-template <typename Container, typename Parameter, typename Predicate>
-auto find_if(Container c, Parameter p, Predicate pred) {
-  namespace ranges = std::ranges;
-  return ranges::find_if(c,
-                         [p, pred](const auto& obj) { return pred(obj, p); });
 }
 
 }  // namespace concordo

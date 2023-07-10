@@ -158,8 +158,7 @@ string System::get_user_name(int id) const { return find_user(id)->getName(); }
 
 void System::create_user(string_view args) {
   const UserCredentials c = parse_new_credentials(args);
-  if (!any_of<vector<User>, string_view>(users_list_, c.address,
-                                         check_address)) {
+  if (!any_of<const vector<User>&>(users_list_, c.address, check_address)) {
     ++last_id_;
     users_list_.emplace_back(last_id_, c);
     cout << "User created\n";
@@ -191,18 +190,13 @@ void System::disconnect() {
 }
 
 // Server related commands.
-bool System::check_server(string_view name) const {
-  return ranges::any_of(servers_list_,
-                        [=](const Server& s) { return check_name(s, name); });
-}
-
 auto System::find_server(string_view name) {
   return find_if(servers_list_.begin(), servers_list_.end(),
                  [=](const Server& s) { return check_name(s, name); });
 }
 
 void System::create_server(string_view name) {
-  if (!check_server(name)) {
+  if (!any_of<const vector<Server>&>(servers_list_, name, check_name)) {
     servers_list_.emplace_back(current_user_->getId(), name);
     cout << "Server created\n";
   } else {
@@ -211,7 +205,7 @@ void System::create_server(string_view name) {
 }
 
 void System::change_description(const ServerDetails& sd) {
-  if (check_server(sd.name)) {
+  if (any_of<const vector<Server>&>(servers_list_, sd.name, check_name)) {
     auto it{find_server(sd.name)};
     if (check_owner(*it, *current_user_)) {
       it->setDescription(sd.description);
@@ -225,7 +219,7 @@ void System::change_description(const ServerDetails& sd) {
 }
 
 void System::change_invite(const ServerDetails& sd) {
-  if (check_server(sd.name)) {
+  if (any_of<const vector<Server>&>(servers_list_, sd.name, check_name)) {
     auto it{find_server(sd.name)};
     if (check_owner(*it, *current_user_)) {
       it->setInvite(sd.invite_code);
@@ -249,7 +243,7 @@ void System::list_servers() const {
 }
 
 void System::remove_server(string_view name) {
-  if (check_server(name)) {
+  if (any_of<const vector<Server>&>(servers_list_, name, check_name)) {
     auto it{find_server(name)};
     if (check_owner(*it, *current_user_)) {
       servers_list_.erase(it);
@@ -263,7 +257,7 @@ void System::remove_server(string_view name) {
 }
 
 void System::enter_server(const ServerDetails& sd) {
-  if (check_server(sd.name)) {
+  if (any_of<const vector<Server>&>(servers_list_, sd.name, check_name)) {
     auto it{find_server(sd.name)};
     if (it->getInvite().empty() || check_owner(*it, *current_user_) ||
         sd.invite_code == it->getInvite()) {
@@ -307,14 +301,7 @@ bool System::check_channel(const ChannelDetails& cd) const {
       });
 }
 
-auto System::find_channel(string_view name) {
-  return find_if(
-      current_server_->getChannels().begin(),
-      current_server_->getChannels().end(),
-      [=](const unique_ptr<Channel>& c) { return c->getName() == name; });
-}
-
-auto System::find_channel(string_view name) const {
+constexpr auto System::find_channel(string_view name) {
   return find_if(
       current_server_->getChannels().begin(),
       current_server_->getChannels().end(),
