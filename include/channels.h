@@ -11,17 +11,17 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <vector>
 
 namespace concordo {
 
-using std::string, std::string_view, std::vector, std::cout, std::ofstream;
+using std::string, std::string_view, std::vector, std::cout, std::fstream;
 using std::chrono::system_clock;
 
-struct ChannelDetails {
-  string name;
-  string type;
+struct MessageDetails {
+  time_t date_time;
+  int sender_id;
+  string content;
 };
 
 /*! A class that represents a message sent in a channel.
@@ -38,6 +38,8 @@ class Message {
    */
   Message(int sender_id, string_view content)
       : sender_id_{sender_id}, content_{content} {}
+  explicit Message(const MessageDetails &d)
+      : date_time_{d.date_time}, sender_id_{d.sender_id}, content_{d.content} {}
 
   /*! @see date_time_ */
   [[nodiscard]] time_t getDateTime() const { return date_time_; }
@@ -50,7 +52,7 @@ class Message {
 
   [[nodiscard]] bool empty() const { return content_.empty(); }
 
-  void save(ofstream &f);
+  void save(fstream &f);
 
  private:
   time_t date_time_{
@@ -58,6 +60,12 @@ class Message {
                                                         the message was sent. */
   int sender_id_{}; /*!< The id of the user who sent the message. */
   string content_;  /*!< The content written into the message. */
+};
+
+struct ChannelDetails {
+  string name;
+  string type;
+  vector<Message> messages;
 };
 
 /*! A base class that represents a channel from a Concordo's server.
@@ -92,7 +100,7 @@ class Channel {
 
   void print() { cout << name_ << '\n'; }
 
-  virtual void save(ofstream &f) = 0;
+  virtual void save(fstream &f) = 0;
 
  private:
   string name_; /*!< The name of the channel. */
@@ -115,13 +123,16 @@ class TextChannel : public Channel {
    */
   explicit TextChannel(string_view name) : Channel(name) {}
 
+  explicit TextChannel(const ChannelDetails &d)
+      : Channel(d.name), messages_{d.messages} {}
+
   /*! @see messages_ */
   vector<Message> getMessages() { return messages_; }
   void send_message(const Message &m) override { messages_.push_back(m); }
   [[nodiscard]] bool empty() const { return messages_.empty(); }
 
-  void save(ofstream &f) override;
-  void save_messages(ofstream &f);
+  void save(fstream &f) override;
+  void save_messages(fstream &f);
 
  private:
   vector<Message> messages_; /*!< The list of all messages sent to a channel. */
@@ -143,13 +154,15 @@ class VoiceChannel : public Channel {
    *  @see Channel::Channel(string_view)
    */
   explicit VoiceChannel(string_view name) : Channel(name) {}
+  explicit VoiceChannel(const ChannelDetails &d)
+      : Channel(d.name), last_message_{d.messages[0]} {}
 
   /*! @see last_message_ */
   Message getMessage() { return last_message_; }
   void send_message(const Message &m) override { last_message_ = m; }
   [[nodiscard]] bool empty() const { return last_message_.empty(); }
 
-  void save(ofstream &f) override;
+  void save(fstream &f) override;
 
  private:
   Message last_message_; /*!< The last "voice" message sent in the channel. */

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <functional>
 #include <iostream>
 #include <ranges>
@@ -17,7 +18,8 @@
 
 namespace concordo {
 
-using std::array, std::cin, std::cout, std::getline, std::unique_ptr;
+using std::array, std::cin, std::cout, std::getline, std::unique_ptr,
+    std::fstream, std::stoi, std::make_unique;
 namespace ranges = std::ranges;
 namespace views = std::views;
 using enum System::SystemState;
@@ -45,6 +47,7 @@ void System::run(const CommandLine& cl) {
   if (cl.command == "disconnect") {
     disconnect();
   } else if (check_all_commands(cl.command)) {
+    // load();
     switch (current_state_) {
       case kGuest:
         run_guest_cmd(cl);
@@ -59,6 +62,9 @@ void System::run(const CommandLine& cl) {
         run_channel_cmd(cl);
         break;
     }
+    if (check_command(save_required_commands_, cl.command)) {
+      save();
+    }
   } else {
     cout << "Invalid command\n";
   }
@@ -68,7 +74,6 @@ void System::run_guest_cmd(const CommandLine& cl) {
   if (check_command(guest_commands_, cl.command)) {
     if (cl.command == "create-user") {
       create_user(cl.arguments);
-      save();
     } else {
       user_login(cl.arguments);
     }
@@ -81,18 +86,14 @@ void System::run_logged_cmd(const CommandLine& cl) {
   if (check_command(logged_commands_, cl.command)) {
     if (cl.command == "create-server") {
       create_server(cl.arguments);
-      save();
     } else if (cl.command == "set-server-desc") {
       change_description(parse_details(cl.arguments, 0));
-      save();
     } else if (cl.command == "set-server-invite-code") {
       change_invite(parse_details(cl.arguments, 1));
-      save();
     } else if (cl.command == "list-servers") {
       list_servers();
     } else if (cl.command == "remove-server") {
       remove_server(cl.arguments);
-      save();
     } else {
       enter_server(parse_details(cl.arguments, 2));
     }
@@ -111,7 +112,6 @@ void System::run_server_cmd(const CommandLine& cl) {
       list_channels();
     } else if (cl.command == "create-channel") {
       create_channel(cl.arguments);
-      save();
     } else if (cl.command == "enter-channel") {
       enter_channel(cl.arguments);
     } else if (cl.command == "leave-channel") {
@@ -126,7 +126,6 @@ void System::run_channel_cmd(const CommandLine& cl) {
   if (check_command(channel_commands_, cl.command)) {
     if (cl.command == "send-message") {
       send_message(cl.arguments);
-      save();
     } else {
       list_messages();
     }
@@ -163,11 +162,15 @@ auto System::find_user(string_view address) {
 
 string System::get_user_name(int id) const { return find_user(id)->getName(); }
 
+void System::emplace_user(const UserCredentials& c) {
+  ++last_id_;
+  users_list_.emplace_back(last_id_, c);
+}
+
 void System::create_user(string_view args) {
   const UserCredentials c = parse_new_credentials(args);
   if (!any_of<const vector<User>&>(users_list_, c.address, check_address)) {
-    ++last_id_;
-    users_list_.emplace_back(last_id_, c);
+    emplace_user(c);
     cout << "User created\n";
   } else {
     cout << "User already exist!\n";
@@ -205,6 +208,7 @@ auto System::find_server(string_view name) {
 void System::create_server(string_view name) {
   if (!any_of<const vector<Server>&>(servers_list_, name, check_name)) {
     servers_list_.emplace_back(current_user_->getId(), name);
+    servers_list_.back().add_member(*current_user_);
     cout << "Server created\n";
   } else {
     cout << "There is already a server with that name\n";
@@ -388,46 +392,64 @@ void System::print_message(const Message& m) const {
        << ">: " << m.getContent() << '\n';
 }
 
-// Save methods
+// Save/Load system methods.
 void System::save_users() {
-  using std::ofstream;
-
-  ofstream f{"users.txt"};
-
+  const string fn{"users.txt"};
+  fstream f{fn, std::ios::out | std::ios::trunc};
   if (!f) {
-    std::cerr << "Could not open 'users.txt'!\n";
+    print_file_error(fn);
     return;
   }
-
   f << users_list_.size() << '\n';
   for (auto& user : users_list_) {
-    f << user.getId() << '\n';
-    f << user.getName() << '\n';
-    f << user.getEmail() << '\n';
-    user.save_password(f);
+    user.save(f);
   }
 }
 
 void System::save_servers() {
-  using std::ofstream;
-
-  ofstream f{"servers.txt"};
-
+  const string fn{"servers.txt"};
+  fstream f{fn, std::ios::trunc | std::ios::out};
   if (!f) {
-    std::cerr << "Could not open 'servers.txt'!\n";
+    print_file_error(fn);
     return;
   }
-
   f << servers_list_.size() << '\n';
   for (auto& server : servers_list_) {
-    server.save_owner(f);
-    f << server.getName() << '\n';
-    server.save_description(f);
-    server.save_invite(f);
-    server.save_members_amount(f);
-    server.save_ids(f);
-    server.save_channels_amount(f);
-    server.save_channels(f);
+    server.save(f);
+  }
+}
+
+void System::load_users() {
+  const string fn{"users.txt"};
+  fstream f{fn, std::ios::in | std::ios::out};
+  if (!f) {
+    print_file_error(fn);
+  } else if (f.peek() != fstream::traits_type::eof()) {
+    users_list_.clear();
+    string up_bound;
+    getline(f, up_bound);
+    UserCredentials c;
+    for (int i{0}; i < stoi(up_bound); ++i) {
+      c = parse_users_file(f);
+      emplace_user(c);
+    }
+  }
+}
+
+void System::load_servers() {
+  const string fn{"servers.txt"};
+  fstream f{fn, std::ios::in | std::ios::out};
+  if (!f) {
+    print_file_error(fn);
+  } else if (f.peek() != fstream::traits_type::eof()) {
+    servers_list_.clear();
+    string up_bound;
+    getline(f, up_bound);
+    for (int i{0}; i < stoi(up_bound); ++i) {
+      auto [d, v] = parse_servers_file(f);
+      servers_list_.emplace_back(d);
+      emplace_channels(servers_list_.back(), v);
+    }
   }
 }
 
@@ -469,27 +491,25 @@ ServerDetails parse_details(string_view args, int cmd) {
     kInvite,       // "set-server-invite-code"
     kEnter         // "enter-server"
   };
-  string name;
-  string desc;
-  string invite;
+  ServerDetails d;
   for (int i{0}; const auto a : views::split(args, ' ')) {
     if (cmd == kEnter || cmd == kInvite) {
       if (i == 0) {
-        name = {a.begin(), a.end()};
+        d.name = {a.begin(), a.end()};
       } else {
-        invite = {a.begin(), a.end()};
+        d.invite_code = {a.begin(), a.end()};
       }
     } else {
       if (i == 0) {
-        name = {a.begin(), a.end()};
+        d.name = {a.begin(), a.end()};
       } else {
-        desc += {a.begin(), a.end()};
+        d.description += {a.begin(), a.end()};
       }
     }
 
     ++i;
   }
-  return {name, desc, invite};
+  return d;
 }
 
 // User related helping functions.
@@ -548,18 +568,105 @@ bool check_channel_name(const unique_ptr<Channel>& c, string_view name) {
   return c->check_name(name);
 }
 
+// Save/Load helping functions.
+void emplace_channels(Server& s, const vector<ChannelDetails>& v) {
+  for (const auto& cd : v) {
+    if (cd.type == "text") {
+      auto c = make_unique<TextChannel>(cd);
+      s.create_channel(std::move(c));
+    } else if (cd.type == "text") {
+      auto c = make_unique<VoiceChannel>(cd);
+      s.create_channel(std::move(c));
+    }
+  }
+}
+
+UserCredentials parse_users_file(fstream& f) {
+  UserCredentials c;
+  f.get();
+  getline(f, c.name);
+  getline(f, c.address);
+  getline(f, c.password);
+  return c;
+}
+
 ChannelDetails parse_details(string_view args) {
-  string name;
-  string type;
+  ChannelDetails d;
   for (int i{0}; const auto w : views::split(args, ' ')) {
     if (i == 0) {
-      name = {w.begin(), w.end()};
+      d.name = {w.begin(), w.end()};
     } else {
-      type = {w.begin(), w.end()};
+      d.type = {w.begin(), w.end()};
     }
     ++i;
   }
-  return {name, type};
+  return d;
+}
+
+pair<ServerDetails, vector<ChannelDetails>> parse_servers_file(fstream& f) {
+  const ServerDetails d{parse_server_details(f)};
+  vector<ChannelDetails> v;
+  string up_bound;
+  getline(f, up_bound);
+  for (int i{0}; i < stoi(up_bound); ++i) {
+    v.push_back(parse_channel_details(f));
+  }
+  return {d, v};
+}
+
+vector<int> parse_members_ids(fstream& f, int up_bound) {
+  vector<int> v;
+  string id;
+  for (int i{0}; i < up_bound; ++i) {
+    getline(f, id);
+    v.push_back(stoi(id));
+  }
+  return v;
+}
+
+ServerDetails parse_server_details(fstream& f) {
+  ServerDetails d;
+  string s;
+  getline(f, s);
+  d.owner_id = stoi(s);
+  getline(f, d.name);
+  getline(f, d.description);
+  getline(f, d.invite_code);
+  getline(f, s);
+  d.members_ids = parse_members_ids(f, stoi(s));
+  return d;
+}
+
+time_t string_to_time(const string& s) {
+  std::stringstream ss(s);
+  time_t t = 0;
+  ss >> t;
+  return t;
+}
+
+MessageDetails parse_message(fstream& f) {
+  MessageDetails d;
+  string s;
+  getline(f, s);
+  d.date_time = string_to_time(s);
+  getline(f, s);
+  d.sender_id = stoi(s);
+  getline(f, d.content);
+  return d;
+}
+
+ChannelDetails parse_channel_details(fstream& f) {
+  ChannelDetails d;
+  getline(f, d.name);
+  getline(f, d.type);
+  std::transform(d.type.begin(), d.type.end(), d.type.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  string up_bound;
+  getline(f, up_bound);
+  for (int i{0}; i < stoi(up_bound); ++i) {
+    d.messages.emplace_back(parse_message(f));
+  }
+  return d;
 }
 
 // Print related helping functions.
@@ -603,6 +710,10 @@ void print_channel_exists(const ChannelDetails& cd) {
 
 void print_channel_exists(string_view type, string_view name) {
   cout << type << " Channel '" << name << "' already exists\n";
+}
+
+void print_file_error(string_view filename) {
+  std::cerr << "Could not open '" << filename << "'!\n";
 }
 
 }  // namespace concordo

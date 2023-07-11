@@ -1,18 +1,31 @@
-#include "servers.h"
+// SPDX-FileCopyrightText: 2023 Fabrício Moura Jácome
+//
+// SPDX-License-Identifier: MIT
 
-#include <fstream>
+#include "servers.h"
 
 namespace concordo {
 
-using std::ofstream;
+using std::fstream;
 
-void Server::save_ids(ofstream& f) {
+void Server::save(fstream& f) {
+  save_owner(f);
+  f << name_ << '\n';
+  save_description(f);
+  save_invite(f);
+  save_members_amount(f);
+  save_ids(f);
+  save_channels_amount(f);
+  save_channels(f);
+}
+
+void Server::save_ids(fstream& f) {
   for (const auto& id : members_ids_) {
     f << id << '\n';
   }
 }
 
-void Server::save_channels(ofstream& f) {
+void Server::save_channels(fstream& f) {
   for (const auto& channel : channels_) {
     channel->save(f);
   }

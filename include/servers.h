@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <concepts>
-#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -23,7 +22,7 @@
 namespace concordo {
 
 using std::unique_ptr, std::string, std::string_view, std::vector, std::cout,
-    std::ostream, std::ofstream;
+    std::fstream;
 namespace ranges = std::ranges;
 
 /*! A struct that contains server details.
@@ -34,9 +33,11 @@ namespace ranges = std::ranges;
  *  concordo::System::change_invite(); concordo::System::enter_server()
  */
 struct ServerDetails {
+  int owner_id;
   string name;        /*!< A server name to be input from the system. */
   string description; /*!< A server description to be input from the system. */
   string invite_code; /*!< A server invite code to be input from the system. */
+  vector<int> members_ids;
 };
 
 /*! A class that represents a server in the Concordo system.
@@ -56,6 +57,12 @@ class Server {
    *  @see concordo::System::create_server()
    */
   explicit Server(int id, string_view n) : owner_id_{id}, name_{n} {}
+  explicit Server(const ServerDetails& d)
+      : owner_id_{d.owner_id},
+        name_{d.name},
+        description_{d.description},
+        invite_code_{d.invite_code},
+        members_ids_{d.members_ids} {}
 
   [[nodiscard]] string getName() const { return name_; }
 
@@ -74,13 +81,14 @@ class Server {
     channels_.push_back(std::move(c));
   }
 
-  void save_owner(ofstream& f) const { f << owner_id_ << '\n'; }
-  void save_description(ofstream& f) { f << description_ << '\n'; }
-  void save_invite(ofstream& f) { f << invite_code_ << '\n'; }
-  void save_members_amount(ofstream& f) { f << members_ids_.size() << '\n'; }
-  void save_ids(ofstream& f);
-  void save_channels_amount(ofstream& f) { f << channels_.size() << '\n'; }
-  void save_channels(ofstream& f);
+  void save(fstream& f);
+  void save_owner(fstream& f) const { f << owner_id_ << '\n'; }
+  void save_description(fstream& f) { f << description_ << '\n'; }
+  void save_invite(fstream& f) { f << invite_code_ << '\n'; }
+  void save_members_amount(fstream& f) { f << members_ids_.size() << '\n'; }
+  void save_ids(fstream& f);
+  void save_channels_amount(fstream& f) { f << channels_.size() << '\n'; }
+  void save_channels(fstream& f);
 
   [[nodiscard]] bool check_name(string_view name) const {
     return this->name_ == name;
