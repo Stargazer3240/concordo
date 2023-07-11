@@ -68,6 +68,7 @@ void System::run_guest_cmd(const CommandLine& cl) {
   if (check_command(guest_commands_, cl.command)) {
     if (cl.command == "create-user") {
       create_user(cl.arguments);
+      save();
     } else {
       user_login(cl.arguments);
     }
@@ -80,14 +81,18 @@ void System::run_logged_cmd(const CommandLine& cl) {
   if (check_command(logged_commands_, cl.command)) {
     if (cl.command == "create-server") {
       create_server(cl.arguments);
+      save();
     } else if (cl.command == "set-server-desc") {
       change_description(parse_details(cl.arguments, 0));
+      save();
     } else if (cl.command == "set-server-invite-code") {
       change_invite(parse_details(cl.arguments, 1));
+      save();
     } else if (cl.command == "list-servers") {
       list_servers();
     } else if (cl.command == "remove-server") {
       remove_server(cl.arguments);
+      save();
     } else {
       enter_server(parse_details(cl.arguments, 2));
     }
@@ -106,6 +111,7 @@ void System::run_server_cmd(const CommandLine& cl) {
       list_channels();
     } else if (cl.command == "create-channel") {
       create_channel(cl.arguments);
+      save();
     } else if (cl.command == "enter-channel") {
       enter_channel(cl.arguments);
     } else if (cl.command == "leave-channel") {
@@ -120,6 +126,7 @@ void System::run_channel_cmd(const CommandLine& cl) {
   if (check_command(channel_commands_, cl.command)) {
     if (cl.command == "send-message") {
       send_message(cl.arguments);
+      save();
     } else {
       list_messages();
     }
@@ -379,6 +386,49 @@ void System::list_messages() {
 void System::print_message(const Message& m) const {
   cout << get_user_name(m.getId()) << "<" << m.getDateTime()
        << ">: " << m.getContent() << '\n';
+}
+
+// Save methods
+void System::save_users() {
+  using std::ofstream;
+
+  ofstream f{"users.txt"};
+
+  if (!f) {
+    std::cerr << "Could not open 'users.txt'!\n";
+    return;
+  }
+
+  f << users_list_.size() << '\n';
+  for (auto& user : users_list_) {
+    f << user.getId() << '\n';
+    f << user.getName() << '\n';
+    f << user.getEmail() << '\n';
+    user.save_password(f);
+  }
+}
+
+void System::save_servers() {
+  using std::ofstream;
+
+  ofstream f{"servers.txt"};
+
+  if (!f) {
+    std::cerr << "Could not open 'servers.txt'!\n";
+    return;
+  }
+
+  f << servers_list_.size() << '\n';
+  for (auto& server : servers_list_) {
+    server.save_owner(f);
+    f << server.getName() << '\n';
+    server.save_description(f);
+    server.save_invite(f);
+    server.save_members_amount(f);
+    server.save_ids(f);
+    server.save_channels_amount(f);
+    server.save_channels(f);
+  }
 }
 
 // System related helper functions.

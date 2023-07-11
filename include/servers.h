@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <concepts>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -22,7 +23,7 @@
 namespace concordo {
 
 using std::unique_ptr, std::string, std::string_view, std::vector, std::cout,
-    std::ostream;
+    std::ostream, std::ofstream;
 namespace ranges = std::ranges;
 
 /*! A struct that contains server details.
@@ -72,6 +73,14 @@ class Server {
   void create_channel(unique_ptr<Channel> c) {
     channels_.push_back(std::move(c));
   }
+
+  void save_owner(ofstream& f) const { f << owner_id_ << '\n'; }
+  void save_description(ofstream& f) { f << description_ << '\n'; }
+  void save_invite(ofstream& f) { f << invite_code_ << '\n'; }
+  void save_members_amount(ofstream& f) { f << members_ids_.size() << '\n'; }
+  void save_ids(ofstream& f);
+  void save_channels_amount(ofstream& f) { f << channels_.size() << '\n'; }
+  void save_channels(ofstream& f);
 
   [[nodiscard]] bool check_name(string_view name) const {
     return this->name_ == name;

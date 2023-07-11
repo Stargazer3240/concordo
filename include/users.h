@@ -5,6 +5,7 @@
 #ifndef USERS_H
 #define USERS_H
 
+#include <fstream>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -13,7 +14,7 @@
 
 namespace concordo {
 
-using std::string, std::string_view, std::ostream;
+using std::string, std::string_view, std::ostream, std::ofstream;
 
 /*! A struct that contains user credentials.
  *
@@ -65,6 +66,8 @@ class User {
   void send_message(Channel* c, string_view msg) const {
     c->send_message({id_, msg});
   }
+
+  void save_password(ofstream& f);
 
   friend ostream& operator<<(ostream& out, const User& u);
 

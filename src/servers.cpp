@@ -1,6 +1,22 @@
 #include "servers.h"
 
+#include <fstream>
+
 namespace concordo {
+
+using std::ofstream;
+
+void Server::save_ids(ofstream& f) {
+  for (const auto& id : members_ids_) {
+    f << id << '\n';
+  }
+}
+
+void Server::save_channels(ofstream& f) {
+  for (const auto& channel : channels_) {
+    channel->save(f);
+  }
+}
 
 bool Server::check_channel(const ChannelDetails& cd) const {
   return ranges::any_of(channels_, [&](const unique_ptr<Channel>& c) {

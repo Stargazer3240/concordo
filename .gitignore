@@ -7,4 +7,4 @@ bin/
 docs/
 valgrind*
 .cache/
-script.txt
+*.txt

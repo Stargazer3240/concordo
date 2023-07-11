@@ -252,6 +252,11 @@ class System {
 
   void print_message(const Message& m) const;
 
+  void save() {
+    save_users();
+    save_servers();
+  }
+
  private:
   using enum SystemState;
   SystemState current_state_{kGuest}; /*!< The current state of the system */
@@ -277,6 +282,9 @@ kJoinedServer state. */
   unordered_set<string> channel_commands_{
       "send-message",
       "list-messages"}; /*!< The commands allowed in kJoinedChannel state. */
+
+  void save_users();
+  void save_servers();
 };
 
 // Check if the command input in the CLI is valid.

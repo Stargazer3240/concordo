@@ -21,4 +21,5 @@ add_executable(concordo
               src/main.cpp
               src/system.cpp
               src/servers.cpp
-              src/users.cpp)
+              src/users.cpp
+              src/channels.cpp)

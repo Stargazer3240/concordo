@@ -6,6 +6,8 @@
 #define CHANNELS_H
 
 #include <chrono>
+#include <ctime>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -14,7 +16,7 @@
 
 namespace concordo {
 
-using std::string, std::string_view, std::vector, std::cout;
+using std::string, std::string_view, std::vector, std::cout, std::ofstream;
 using std::chrono::system_clock;
 
 struct ChannelDetails {
@@ -48,6 +50,8 @@ class Message {
 
   [[nodiscard]] bool empty() const { return content_.empty(); }
 
+  void save(ofstream &f);
+
  private:
   time_t date_time_{
       system_clock::to_time_t(system_clock::now())}; /*!< The date and time when
@@ -78,6 +82,8 @@ class Channel {
    */
   explicit Channel(string_view name) : name_{name} {}
 
+  [[nodiscard]] string getName() const { return name_; }
+
   [[nodiscard]] bool check_name(string_view name) const {
     return this->name_ == name;
   }
@@ -85,6 +91,8 @@ class Channel {
   virtual void send_message(const Message &m) = 0;
 
   void print() { cout << name_ << '\n'; }
+
+  virtual void save(ofstream &f) = 0;
 
  private:
   string name_; /*!< The name of the channel. */
@@ -112,6 +120,9 @@ class TextChannel : public Channel {
   void send_message(const Message &m) override { messages_.push_back(m); }
   [[nodiscard]] bool empty() const { return messages_.empty(); }
 
+  void save(ofstream &f) override;
+  void save_messages(ofstream &f);
+
  private:
   vector<Message> messages_; /*!< The list of all messages sent to a channel. */
 };
@@ -137,6 +148,8 @@ class VoiceChannel : public Channel {
   Message getMessage() { return last_message_; }
   void send_message(const Message &m) override { last_message_ = m; }
   [[nodiscard]] bool empty() const { return last_message_.empty(); }
+
+  void save(ofstream &f) override;
 
  private:
   Message last_message_; /*!< The last "voice" message sent in the channel. */
