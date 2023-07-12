@@ -8,7 +8,7 @@ namespace concordo {
 
 void Message::save(fstream& f) {
   f << sender_id_ << '\n';
-  f << date_time_ << '\n';
+  f << time_to_string(date_time_) << '\n';
   f << content_ << '\n';
 }
 
@@ -30,6 +30,15 @@ void VoiceChannel::save(fstream& f) {
   f << "VOICE\n";
   f << "1\n";
   last_message_.save(f);
+}
+
+string time_to_string(const time_t& t) {
+  const int y_epoch{1900};
+  std::tm* now = std::localtime(&t);
+  std::stringstream ss;
+  ss << now->tm_mday << '/' << now->tm_mon + 1 << '/' << now->tm_year + y_epoch
+     << " - " << now->tm_hour << ':' << now->tm_min;
+  return ss.str();
 }
 
 }  // namespace concordo

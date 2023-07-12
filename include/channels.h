@@ -168,6 +168,8 @@ class VoiceChannel : public Channel {
   Message last_message_; /*!< The last "voice" message sent in the channel. */
 };
 
+string time_to_string(const time_t &t);
+
 }  // namespace concordo
 
 #endif  // CHANNELS_H

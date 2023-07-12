@@ -8,6 +8,7 @@
 #include <array>
 #include <cctype>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <ranges>
 #include <string>
@@ -29,7 +30,9 @@ void System::init() {
   string cmd_line;
   string cmd;
   string args;
+  load();
   while (getline(cin, cmd_line)) {
+    load();
     cmd = parse_cmd(cmd_line);
     if (cmd == "quit") {
       cout << "Leaving Concordo\n";
@@ -47,7 +50,6 @@ void System::run(const CommandLine& cl) {
   if (cl.command == "disconnect") {
     disconnect();
   } else if (check_all_commands(cl.command)) {
-    // load();
     switch (current_state_) {
       case kGuest:
         run_guest_cmd(cl);
@@ -320,6 +322,20 @@ void System::list_channels() const {
   current_server_->list_voice_channels();
 }
 
+void System::emplace_channels(string_view name,
+                              const vector<ChannelDetails>& v) {
+  for (const auto& cd : v) {
+    auto it{find_server(name)};
+    if (cd.type == "text") {
+      auto c = make_unique<TextChannel>(cd);
+      it->create_channel(std::move(c));
+    } else if (cd.type == "text") {
+      auto c = make_unique<VoiceChannel>(cd);
+      it->create_channel(std::move(c));
+    }
+  }
+}
+
 void System::create_channel(string_view args) {
   const ChannelDetails cd = parse_details(args);
   if (!check_channel(cd)) {
@@ -388,7 +404,8 @@ void System::list_messages() {
 }
 
 void System::print_message(const Message& m) const {
-  cout << get_user_name(m.getId()) << "<" << m.getDateTime()
+  const string date_time{time_to_string(m.getDateTime())};
+  cout << get_user_name(m.getId()) << '<' << date_time
        << ">: " << m.getContent() << '\n';
 }
 
@@ -426,6 +443,7 @@ void System::load_users() {
     print_file_error(fn);
   } else if (f.peek() != fstream::traits_type::eof()) {
     users_list_.clear();
+    last_id_ = 0;
     string up_bound;
     getline(f, up_bound);
     UserCredentials c;
@@ -448,7 +466,7 @@ void System::load_servers() {
     for (int i{0}; i < stoi(up_bound); ++i) {
       auto [d, v] = parse_servers_file(f);
       servers_list_.emplace_back(d);
-      emplace_channels(servers_list_.back(), v);
+      emplace_channels(d.name, v);
     }
   }
 }
@@ -522,40 +540,37 @@ bool check_password(const User& u, string_view p) {
 }
 
 UserCredentials parse_new_credentials(string_view cred) {
-  string addr;
-  string pass;
-  string name;
+  UserCredentials c;
   for (int i{0}; const auto w : views::split(cred, ' ')) {
     switch (i) {
       case 0:
-        addr = {w.begin(), w.end()};
+        c.address = {w.begin(), w.end()};
         break;
       case 1:
-        pass = {w.begin(), w.end()};
+        c.password = {w.begin(), w.end()};
         break;
       default:
-        name += {w.begin(), w.end()};
-        name += " ";
+        c.name += {w.begin(), w.end()};
+        c.name += " ";
         break;
     }
     ++i;
   }
-  name.pop_back();
-  return {addr, pass, name};
+  c.name.pop_back();
+  return c;
 }
 
 UserCredentials parse_credentials(string_view cred) {
-  string addr;
-  string pass;
+  UserCredentials c;
   for (int i{0}; const auto w : views::split(cred, ' ')) {
     if (i == 0) {
-      addr = {w.begin(), w.end()};
+      c.address = {w.begin(), w.end()};
     } else {
-      pass = {w.begin(), w.end()};
+      c.password = {w.begin(), w.end()};
     }
     ++i;
   }
-  return {addr, pass, ""};
+  return c;
 }
 
 // Server related helping functions.
@@ -569,21 +584,11 @@ bool check_channel_name(const unique_ptr<Channel>& c, string_view name) {
 }
 
 // Save/Load helping functions.
-void emplace_channels(Server& s, const vector<ChannelDetails>& v) {
-  for (const auto& cd : v) {
-    if (cd.type == "text") {
-      auto c = make_unique<TextChannel>(cd);
-      s.create_channel(std::move(c));
-    } else if (cd.type == "text") {
-      auto c = make_unique<VoiceChannel>(cd);
-      s.create_channel(std::move(c));
-    }
-  }
-}
-
 UserCredentials parse_users_file(fstream& f) {
   UserCredentials c;
-  f.get();
+  string s;
+  getline(f, s);
+  c.id = stoi(s);
   getline(f, c.name);
   getline(f, c.address);
   getline(f, c.password);
@@ -639,18 +644,18 @@ ServerDetails parse_server_details(fstream& f) {
 
 time_t string_to_time(const string& s) {
   std::stringstream ss(s);
-  time_t t = 0;
-  ss >> t;
-  return t;
+  std::tm tm{};
+  ss >> std::get_time(&tm, "%d/%m/%Y - %H:%M");
+  return std::mktime(&tm);
 }
 
 MessageDetails parse_message(fstream& f) {
   MessageDetails d;
   string s;
   getline(f, s);
-  d.date_time = string_to_time(s);
-  getline(f, s);
   d.sender_id = stoi(s);
+  getline(f, s);
+  d.date_time = string_to_time(s);
   getline(f, d.content);
   return d;
 }

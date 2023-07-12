@@ -22,6 +22,7 @@ using std::string, std::string_view, std::ostream, std::fstream;
  *  @see User; User::name_; User::address_; User::password_
  */
 struct UserCredentials {
+  int id;
   string address;  /*!< An user email address to be input from the system. */
   string password; /*!< An user password to be input from the system. */
   string name;     /*!< An user name to be input from the system. */

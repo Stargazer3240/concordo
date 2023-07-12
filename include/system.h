@@ -248,6 +248,8 @@ class System {
 
   void create_channel(string_view args);
 
+  void emplace_channels(string_view name, const vector<ChannelDetails>& v);
+
   void enter_channel(string_view name);
 
   void leave_channel();
@@ -342,7 +344,6 @@ bool check_channel_name(const unique_ptr<Channel>& c, string_view name);
 
 ChannelDetails parse_details(string_view args);
 
-void emplace_channels(Server& s, const vector<ChannelDetails>& v);
 UserCredentials parse_users_file(fstream& f);
 vector<int> parse_members_ids(fstream& f, int up_bound);
 ServerDetails parse_server_details(fstream& f);
