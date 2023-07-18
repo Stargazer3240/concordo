@@ -201,7 +201,7 @@ class System {
    */
   void change_invite(const ServerDetails& sd);
 
-  /*! Lists all the existing serversin the system.
+  /*! Lists all the existing servers in the system.
    *  @see server::Server;
    *  @see servers_list_
    */
@@ -353,7 +353,7 @@ ChannelDetails parse_channel_details(fstream& f);
 pair<ServerDetails, vector<ChannelDetails>> parse_servers_file(fstream& f);
 
 // Some functions that print to the cout.
-void print_abscent(string_view name);
+void print_absent(string_view name);
 void print_no_permission(string_view sv);
 void print_info_changed(tuple<string_view, string_view, string_view> info);
 void print_info_changed(string_view wc1, const Server& s, string_view wc2);

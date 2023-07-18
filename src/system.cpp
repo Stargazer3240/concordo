@@ -227,7 +227,7 @@ void System::change_description(const ServerDetails& sd) {
       print_no_permission("description");
     }
   } else {
-    print_abscent(sd.name);
+    print_absent(sd.name);
   }
 }
 
@@ -245,7 +245,7 @@ void System::change_invite(const ServerDetails& sd) {
       print_no_permission("invite code");
     }
   } else {
-    print_abscent(sd.name);
+    print_absent(sd.name);
   }
 }
 
@@ -265,7 +265,7 @@ void System::remove_server(string_view name) {
       cout << "You can't remove a server that isn't yours\n";
     }
   } else {
-    print_abscent(name);
+    print_absent(name);
   }
 }
 
@@ -284,7 +284,7 @@ void System::enter_server(const ServerDetails& sd) {
       cout << "Server requires invite code\n";
     }
   } else {
-    print_abscent(sd.name);
+    print_absent(sd.name);
   }
 }
 
@@ -294,7 +294,7 @@ void System::leave_server() {
     current_server_ = nullptr;
     current_state_ = kLogged_In;
   } else {
-    cout << "You are not visualising any server\n";
+    cout << "You are not visualizing any server\n";
   }
 }
 
@@ -675,7 +675,7 @@ ChannelDetails parse_channel_details(fstream& f) {
 }
 
 // Print related helping functions.
-void print_abscent(string_view name) {
+void print_absent(string_view name) {
   cout << "Server '" << name << "' doesn't exist\n";
 }
 
